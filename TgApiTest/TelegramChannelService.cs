@@ -10,26 +10,28 @@ using WTelegram;
 
 public class TelegramChannelService : IDisposable
 {
-    private readonly TelegramConfig _config;
-    private readonly Client _client;
+    private readonly TelegramConfig config;
+    private readonly Client client;
+    private readonly string channelReference;
 
-    public TelegramChannelService(TelegramConfig config)
+    public TelegramChannelService(TelegramConfig config, string? channelReference)
     {
-        _config = config;
-        _client = new Client(ResolveConfig);
+        this.config = config;
+        client = new Client(ResolveConfig);
+        this.channelReference = channelReference ?? throw new InvalidOperationException("конфиг юзера не задан!!");
     }
 
     private string? ResolveConfig(string what) => what switch
     {
-        "api_id" => _config.ApiId ?? throw new InvalidOperationException("конфиг юзера не задан!!"),
-        "api_hash" => _config.ApiHash,
-        "phone_number" => _config.PhoneNumber,
+        "api_id" => config.ApiId ?? throw new InvalidOperationException("конфиг юзера не задан!!"),
+        "api_hash" => config.ApiHash,
+        "phone_number" => config.PhoneNumber,
         _ => null
     };
 
     public async Task LoginAsync()
     {
-        var user = await _client.LoginUserIfNeeded();
+        var user = await client.LoginUserIfNeeded();
         Log.Information($"✅ Logged in as: {user.username ?? user.first_name}");
     }
 
@@ -37,15 +39,15 @@ public class TelegramChannelService : IDisposable
     {
         var members = new List<ChannelMember>();
 
-        var dialogs = await _client.Messages_GetAllDialogs();
+        var dialogs = await client.Messages_GetAllDialogs();
         foreach (var peer in dialogs.chats.Values)
         {
-            if (peer is Channel channel && channel.IsChannel && channel.MainUsername is "api_test_kek")
+            if (peer is Channel channel && channel.IsChannel && channel.MainUsername == channelReference)
             {
                 Console.WriteLine($"📢 Channel: {channel.MainUsername}");
                 try
                 {
-                    var result = await _client.Channels_GetParticipants(
+                    var result = await client.Channels_GetParticipants(
                         channel,
                         filter: new ChannelParticipantsRecent(),
                         offset: 0,
@@ -69,7 +71,7 @@ public class TelegramChannelService : IDisposable
         return members;
     }
 
-    public void Dispose() => _client.Dispose();
+    public void Dispose() => client.Dispose();
 
     public ChannelMember ToChannelMember(User tgUser) => new
     (

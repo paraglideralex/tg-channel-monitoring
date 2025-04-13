@@ -27,7 +27,7 @@ var config = new TelegramConfig(
     settingsBuilder.TelegramApiSettings.ApiHash,
     settingsBuilder.TelegramApiSettings.PhoneNumber);
 
-var telegramService = new TelegramChannelService(config);
+var telegramService = new TelegramChannelService(config, settingsBuilder.TelegramApiSettings.ChannelReferenceLink);
 
 var client = new TelegramBotClient(settingsBuilder.TelegramBotSettings!.BotToken);
 
