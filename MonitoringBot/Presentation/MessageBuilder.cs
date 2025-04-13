@@ -28,7 +28,7 @@ public class MessageBuilder(UserRepository userRepository)
 
         sb.AppendLine($"  ID: {member.Id}");
         sb.AppendLine($"  Присоединился: {member.JoinedAt?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
-        sb.AppendLine($"  Никнейм: {(string.IsNullOrEmpty(member.NickName) ? "не указан" : member.NickName)}");
+        sb.AppendLine($"  Никнейм: @{(string.IsNullOrEmpty(member.NickName) ? "не указан" : member.NickName)}");
         sb.AppendLine($"  Это бот: {(member.IsBot ? "да" : "нет")}");
         sb.AppendLine($"  Имя: {member.FirstName}");
         sb.AppendLine($"  Фамилия: {member.LastName}");
@@ -61,7 +61,7 @@ public class MessageBuilder(UserRepository userRepository)
 
         sb.AppendLine($"  ID: {member.Id}");
         sb.AppendLine($"  Информация от: {member.TimeStamp?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
-        sb.AppendLine($"  Никнейм: {(string.IsNullOrEmpty(member.NickName) ? "не указан" : member.NickName)}");
+        sb.AppendLine($"  Никнейм: @{(string.IsNullOrEmpty(member.NickName) ? "не указан" : member.NickName)}");
         sb.AppendLine($"  Это бот: {(member.IsBot ? "да" : "нет")}");
         sb.AppendLine($"  Имя: {member.FirstName}");
         sb.AppendLine($"  Фамилия: {member.LastName}");
