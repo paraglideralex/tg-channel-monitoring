@@ -92,7 +92,6 @@ public class MonitoringEngineTests
     public async Task BasicDeletion_Success()
     {
         // Arrange
-        // Arrange
         var existingUsers = new List<ChannelMember>()
         {
             new ChannelMember(55, "test1", false, "test1", "test1", "79999998881",new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)),
@@ -118,7 +117,6 @@ public class MonitoringEngineTests
     [Test]
     public async Task RangeDeletion_Success()
     {
-        // Arrange
         // Arrange
         var existingUsers = new List<ChannelMember>()
         {

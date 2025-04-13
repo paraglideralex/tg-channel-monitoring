@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonitoringBot.Application",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonitoringBot.Application.Tests", "MonitoringBot.Application.Tests\MonitoringBot.Application.Tests.csproj", "{7EA4D519-D1AF-406C-BEA7-8CD6C30CC819}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{930B343C-F8DF-41F0-9DAC-AC36833BEA89}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,6 +44,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7EA4D519-D1AF-406C-BEA7-8CD6C30CC819} = {930B343C-F8DF-41F0-9DAC-AC36833BEA89}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3E06F83D-6159-465A-914C-40BE8DD5A22C}

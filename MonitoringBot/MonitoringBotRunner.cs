@@ -158,6 +158,8 @@ public class MonitoringBotRunner : IDisposable
         basicDate = DateTime.Now;
         basic = DateTime.Now;
 
+        // TODO: получить существующих юзеров для мониторинга
+
         updates = await telegramBotClient.GetUpdatesAsync();
         await telegramService.LoginAsync();
 
