@@ -59,10 +59,9 @@ public class MonitoringBotRunner : IDisposable
             }
             else
             {
-                await TrySendMessageAsync(335442317, $"Ничего не происходить {DateTime.Now}");
+                // await TrySendMessageAsync(335442317, $"Ничего не происходить {DateTime.Now}");
                 Log.Information($"Ничего не происходить {DateTime.Now}");
             }
-
             basicDate = DateTime.Now;
         }
     }
@@ -119,14 +118,12 @@ public class MonitoringBotRunner : IDisposable
                     chatIdCollection.Add(chatId);
                     Log.Information($"В рассылку бота добавлен новый пользователь с Id {chatId}");
                 }
-                    
 
                 if (resultMessage is not null)
                 {
                     await TrySendMessageAsync(chatId, resultMessage);
                     Log.Information($"Пользователю {chatId} отправлен ответ '{resultMessage}'.");
                 }
-                    
             }
 
             var offset = updates.Last().UpdateId + 1;
