@@ -10,8 +10,8 @@ public class SettingsBuilder
 
     public void BuildBotSettings(IConfiguration appsettings)
     {
-        TelegramBotSettings = appsettings.GetSection("TelegramBot").Get<TelegramBotSettings>() 
-            ?? throw new InvalidDataException($"{nameof(TelegramBotSettings)} section doesn't exist." );
+        TelegramBotSettings = appsettings.GetSection("TelegramBot").Get<TelegramBotSettings>()
+            ?? throw new InvalidDataException($"{nameof(TelegramBotSettings)} section doesn't exist.");
     }
 
     public void BuildApiSettings(IConfiguration appsettings)
@@ -24,10 +24,12 @@ public class SettingsBuilder
     {
         var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Development";
 
+        var configPath = Path.Combine(AppContext.BaseDirectory, "Configurations");
+
         var builder = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("Configurations/appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile($"Configurations/appsettings.{environment}.json", optional: true, reloadOnChange: true)
+            .SetBasePath(configPath)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables();
 
         IConfiguration appsettings = builder.Build();
