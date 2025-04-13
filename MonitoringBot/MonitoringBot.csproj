@@ -31,6 +31,9 @@
     <None Update="Configurations\appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Configurations\appsettings.Production.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="лул.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

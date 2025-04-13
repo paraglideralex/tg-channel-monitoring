@@ -23,5 +23,6 @@ msbuild.wrn
 heading.csv
 
 appsettings.Development.json
+appsettings.Production.json
 logs/
 Logs/
