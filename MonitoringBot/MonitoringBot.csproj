@@ -26,10 +26,10 @@
 
   <ItemGroup>
     <None Update="Configurations\appsettings.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Configurations\appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="лул.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
