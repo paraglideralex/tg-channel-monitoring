@@ -26,6 +26,8 @@ public class TelegramChannelService : IDisposable
         "api_id" => config.ApiId ?? throw new InvalidOperationException("конфиг юзера не задан!!"),
         "api_hash" => config.ApiHash,
         "phone_number" => config.PhoneNumber,
+        //"session_key" => Guid.NewGuid().ToString(),
+        "session_pathname" => $"session_{channelReference}",
         _ => null
     };
 
