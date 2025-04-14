@@ -21,6 +21,12 @@ public class TelegramChannelService : IDisposable
         this.channelReference = channelReference ?? throw new InvalidOperationException("конфиг юзера не задан!!");
     }
 
+    private string GetVerificationCode()
+    {
+        Console.Write("verification: ");
+        return Console.ReadLine() ?? "";
+    }
+
     private string? ResolveConfig(string what) => what switch
     {
         "api_id" => config.ApiId ?? throw new InvalidOperationException("конфиг юзера не задан!!"),
@@ -28,8 +34,10 @@ public class TelegramChannelService : IDisposable
         "phone_number" => config.PhoneNumber,
         //"session_key" => Guid.NewGuid().ToString(),
         "session_pathname" => $"session_{channelReference}",
+        "verification_code" => GetVerificationCode(),
         _ => null
     };
+
 
     public async Task LoginAsync()
     {
