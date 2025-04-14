@@ -17,8 +17,8 @@ public class TelegramChannelService : IDisposable
     public TelegramChannelService(TelegramConfig config, string? channelReference)
     {
         this.config = config;
-        client = new Client(ResolveConfig);
         this.channelReference = channelReference ?? throw new InvalidOperationException("конфиг юзера не задан!!");
+        client = new Client(ResolveConfig);
     }
 
     private string GetVerificationCode()
@@ -27,13 +27,29 @@ public class TelegramChannelService : IDisposable
         return Console.ReadLine() ?? "";
     }
 
+    public string SessionPath()
+    {
+        // Получаем путь к директории с исполняемым файлом
+        var exeDir = AppContext.BaseDirectory;
+
+        // Для Linux: если путь содержит "bin/Debug" или "bin/Release", оставляем как есть
+        // Для Windows: тоже будет работать корректно
+        var sessionDir = exeDir;
+
+        // Создаем директорию, если не существует
+        if (!Directory.Exists(sessionDir))
+            Directory.CreateDirectory(sessionDir);
+
+        return Path.Combine(sessionDir, $"session_{channelReference}");
+    }
+
     private string? ResolveConfig(string what) => what switch
     {
         "api_id" => config.ApiId ?? throw new InvalidOperationException("конфиг юзера не задан!!"),
         "api_hash" => config.ApiHash,
         "phone_number" => config.PhoneNumber,
         //"session_key" => Guid.NewGuid().ToString(),
-        "session_pathname" => $"session_{channelReference}",
+        "session_pathname" => SessionPath(),
         "verification_code" => GetVerificationCode(),
         _ => null
     };
