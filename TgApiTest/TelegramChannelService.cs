@@ -73,19 +73,15 @@ public class TelegramChannelService : IDisposable
                 Console.WriteLine($"📢 Channel: {channel.MainUsername}");
                 try
                 {
-                    var result = await client.Channels_GetParticipants(
-                        channel,
-                        filter: new ChannelParticipantsRecent(),
-                        offset: 0,
-                        limit: 1000,
-                        hash: 0);
+                    var result = await client.Channels_GetAllParticipants(
+                        channel);
 
                     foreach (var user in result.users.Values)
                     {
-                        Console.WriteLine($" - {user.username ?? user.first_name} ({user.id})");
+                        // Console.WriteLine($" - {user.username ?? user.first_name} ({user.id})");
                         members.Add(ToChannelMember(user));
                     }
-                    Log.Debug("Успешный импорт участников канала");
+                    Log.Debug($"Успешный импорт {result.count} участников канала");
                 }
                 catch (RpcException ex)
                 {
