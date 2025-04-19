@@ -22,6 +22,9 @@ public class MessageBuilder(UserRepository userRepository)
         return FormatMembers(members.Count >= count ? members.Take(count) : members);
     }
 
+    public string Info(string channelReference) =>
+        $"Данный бот предоставляет для канала {channelReference} информацию о хороших новых подписчиках ❤️ и плохих отписавшихся 💩";
+
     public string FormatMember(ChannelMemberEntity member)
     {
         var sb = new StringBuilder();

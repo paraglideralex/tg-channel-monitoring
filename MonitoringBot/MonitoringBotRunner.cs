@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Application;
+using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Presentation;
 
 using Serilog;
@@ -16,7 +17,8 @@ public class MonitoringBotRunner : IDisposable
         MonitoringEngine monitoringEngine,
         MonitoringPresentation monitoringPresentation,
         List<long> chatIdCollection,
-        int checkPeriodSeconds)
+        int checkPeriodSeconds,
+        string channelReference)
     {
         this.telegramBotClient = telegramBotClient;
         this.telegramService = telegramService;
@@ -25,7 +27,9 @@ public class MonitoringBotRunner : IDisposable
         this.monitoringPresentation = monitoringPresentation;
         this.chatIdCollection = chatIdCollection;
         this.checkPeriodSeconds = checkPeriodSeconds;
+        this.channelReference = channelReference;
     }
+    private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
 
     private readonly TelegramBotClient telegramBotClient;
     private readonly TelegramChannelService telegramService;
@@ -33,8 +37,9 @@ public class MonitoringBotRunner : IDisposable
     private readonly MonitoringEngine monitoringEngine;
     private readonly MonitoringPresentation monitoringPresentation;
     private readonly List<long> chatIdCollection;
-    private int checkPeriodSeconds = 10;
+    private readonly string channelReference;
 
+    private int checkPeriodSeconds;
     private DateTime basicDate;
     private DateTime basic;
     private IEnumerable<Update> updates;
@@ -59,7 +64,6 @@ public class MonitoringBotRunner : IDisposable
             }
             else
             {
-                // await TrySendMessageAsync(335442317, $"Ничего не происходить {DateTime.Now}");
                 Log.Information($"Ничего не происходить {DateTime.Now}");
             }
             basicDate = DateTime.Now;
@@ -79,12 +83,15 @@ public class MonitoringBotRunner : IDisposable
     {
         try
         {
-            await telegramBotClient.SendMessageAsync(id, message ?? "Пустое сообщение", parseMode: FormatStyles.HTML);
+            await telegramBotClient.SendMessageAsync(
+                id, 
+                message.TakeAndFormatFirst(telegramMessageLengthLimit) ?? "Пустое сообщение",
+                parseMode: FormatStyles.HTML);
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
-            Log.Error($"Сообщение не было отправлено id: {id}, message:{message}");
+            Log.Error($"Сообщение в ответ на запрос не было отправлено id: {id}, message:{message.TakeAndFormatFirst(300)}");
         }
     }
 
@@ -106,9 +113,10 @@ public class MonitoringBotRunner : IDisposable
 
                 string? resultMessage = message switch
                 {
-                    "/info" => "Данный бот предоставляет информацию о хороших новых подписчиках ❤️ и плохих отписавшихся 💩",
+                    "/info" => messageBuilder.Info(channelReference),
                     "/last" => await messageBuilder.Last(),
                     "/check" => "тут будет мгновенная стата",
+                    "/change_period" => "будет менять период мониторингка",
                     _ => null
                 };
 
@@ -122,7 +130,7 @@ public class MonitoringBotRunner : IDisposable
                 if (resultMessage is not null)
                 {
                     await TrySendMessageAsync(chatId, resultMessage);
-                    Log.Information($"Пользователю {chatId} отправлен ответ '{resultMessage}'.");
+                    Log.Information($"Пользователю {chatId} отправлен ответ на {message}: '{resultMessage.TakeAndFormatFirst(300)}'.");
                 }
             }
 
@@ -155,13 +163,13 @@ public class MonitoringBotRunner : IDisposable
         basicDate = DateTime.Now;
         basic = DateTime.Now;
 
-        // TODO: получить существующих юзеров для мониторинга
-
         updates = await telegramBotClient.GetUpdatesAsync();
         await telegramService.LoginAsync();
 
         await TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");
+
+        await ProcessMonitoringAsync(); // TODO: получить существующих юзеров для мониторинга из базы, когда она таки-будет
     }
 
     public async Task MainLoopAsync()

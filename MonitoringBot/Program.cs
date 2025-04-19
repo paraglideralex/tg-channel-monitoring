@@ -2,7 +2,7 @@
 
 using MonitoringBot;
 using MonitoringBot.Application;
-using MonitoringBot.Infrastructure.Persistense;
+using MonitoringBot.Infrastructure.Persistence;
 using MonitoringBot.Presentation;
 
 using Telegram.BotAPI;
@@ -42,7 +42,8 @@ var monitoringBotRunner = new MonitoringBotRunner(
     monitoringEngine,
     monitoringPresentation,
     settingsBuilder.TelegramBotSettings.ChatIdsCollection,
-    settingsBuilder.TelegramBotSettings.CheckPeriodSeconds);
+    settingsBuilder.TelegramBotSettings.CheckPeriodSeconds,
+    settingsBuilder.TelegramApiSettings.ChannelReferenceLink);
 
 await monitoringBotRunner.InitializeAsync();
 await monitoringBotRunner.MainLoopAsync();

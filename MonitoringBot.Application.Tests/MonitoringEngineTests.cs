@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using MonitoringBot.Infrastructure;
-using MonitoringBot.Infrastructure.Persistense;
+using MonitoringBot.Infrastructure.Persistence;
 
 using Moq;
 

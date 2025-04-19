@@ -20,7 +20,5 @@
   <ItemGroup>
     <ProjectReference Include="..\Infrastructure\MonitoringBot.Infrastructure.csproj" />
   </ItemGroup>
-  
-  
 
 </Project>
