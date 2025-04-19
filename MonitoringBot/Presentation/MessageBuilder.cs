@@ -10,6 +10,20 @@ namespace MonitoringBot.Presentation;
 
 public class MessageBuilder(UserRepository userRepository)
 {
+    public async Task<string> CheckDiagnostics(int dataUpdatePeriodSeconds, 
+        double membersCountDurationSeconds,
+        int botSubscribersCount)
+    {
+        var sb = new StringBuilder();
+
+        sb.AppendLine($"Количество подписчиков: {await userRepository.CountAsync()}");
+        sb.AppendLine($"Период обновления данных, секунд: {dataUpdatePeriodSeconds}");
+        sb.AppendLine($"Время подсчета подписчиков, секунд: {membersCountDurationSeconds}");
+        sb.AppendLine($"Количество текущих подписчиков на бота: {botSubscribersCount}");
+        sb.AppendLine($"Инфа от: {DateTime.Now.ToString("dd.MM.yyyy HH:mm")}");
+        return sb.ToString();
+    }
+
     public async Task<string> Last(int count = 5)
     {
         if (count <= 0)

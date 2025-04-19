@@ -40,34 +40,35 @@ public class MonitoringBotRunner : IDisposable
     private readonly string channelReference;
 
     private int checkPeriodSeconds;
-    private DateTime basicDate;
-    private DateTime basic;
+    private DateTime basicTimeStamp;
     private IEnumerable<Update> updates;
     
+    private async Task ProcessMonitoringByPeriodAsync()
+    {
+        if ((DateTime.Now - basicTimeStamp).TotalSeconds > checkPeriodSeconds)
+            await ProcessMonitoringAsync();
+    }
+
     private async Task ProcessMonitoringAsync()
     {
-        if ((DateTime.Now - basicDate).TotalSeconds > checkPeriodSeconds)
+        var users = await telegramService.GetChannelMembersAsync();
+
+        await monitoringEngine.MonitoringStep(users);
+
+        var resultingMessage = monitoringPresentation.FormatLeftOrJoinedUsers(
+            monitoringEngine.CurrentStepDifferenceCount,
+            monitoringEngine.CurrentStepMemberDifference);
+
+        if (monitoringEngine.CurrentStepDifferenceCount != 0)
         {
-
-            var users = await telegramService.GetChannelMembersAsync();
-
-            await monitoringEngine.MonitoringStep(users);
-
-            var resultingMessage = monitoringPresentation.FormatLeftOrJoinedUsers(
-                monitoringEngine.CurrentStepDifferenceCount,
-                monitoringEngine.CurrentStepMemberDifference);
-
-            if (monitoringEngine.CurrentStepDifferenceCount != 0)
-            {
-                await TrySendMessageForAllAsync(chatIdCollection, resultingMessage);
-                Log.Information($"Обработано изменение количества участников на {monitoringEngine.CurrentStepDifferenceCount}");
-            }
-            else
-            {
-                Log.Information($"Ничего не происходить {DateTime.Now}");
-            }
-            basicDate = DateTime.Now;
+            await TrySendMessageForAllAsync(chatIdCollection, resultingMessage);
+            Log.Information($"Обработано изменение количества участников на {monitoringEngine.CurrentStepDifferenceCount}");
         }
+        else
+        {
+            Log.Information($"Ничего не происходить {DateTime.Now}");
+        }
+        basicTimeStamp = DateTime.Now;
     }
 
     private async Task TrySendMessageForAllAsync(List<long> chatIdsCollection, string? message)
@@ -117,6 +118,10 @@ public class MonitoringBotRunner : IDisposable
                     "/last" => await messageBuilder.Last(),
                     "/check" => "тут будет мгновенная стата",
                     "/change_period" => "будет менять период мониторингка",
+                    "_check" => await messageBuilder.CheckDiagnostics(
+                                      checkPeriodSeconds, 
+                                      telegramService.LastsearchParicipantsDurationSeconds, 
+                                      chatIdCollection.Count),
                     _ => null
                 };
 
@@ -160,8 +165,7 @@ public class MonitoringBotRunner : IDisposable
 
     public async Task InitializeAsync()
     {
-        basicDate = DateTime.Now;
-        basic = DateTime.Now;
+        basicTimeStamp = DateTime.Now;
 
         updates = await telegramBotClient.GetUpdatesAsync();
         await telegramService.LoginAsync();
@@ -176,7 +180,7 @@ public class MonitoringBotRunner : IDisposable
     {
         while (true)
         {
-            await ProcessMonitoringAsync();
+            await ProcessMonitoringByPeriodAsync();
             await CheckAndProcessInputsAsync();
         }
     }

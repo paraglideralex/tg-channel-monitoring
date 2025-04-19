@@ -18,7 +18,7 @@ public class MonitoringEngine
     public IEnumerable<ChannelMember> CurrentStepMemberDifference { get; private set; }
 
     private async Task<long> CalculateCurrentStepDifferenceCount(IEnumerable<ChannelMember> usersCollectionFromApi) => 
-        usersCollectionFromApi.Count() - await usersRepository.Count();
+        usersCollectionFromApi.Count() - await usersRepository.CountAsync();
 
     private async Task<List<ChannelMember>> FindUsersDifference(IEnumerable<ChannelMember> usersCollectionFromApi, long currentStepDifferenceCount)
     {

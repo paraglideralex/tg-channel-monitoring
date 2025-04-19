@@ -2,7 +2,7 @@
 
 public abstract class UserRepository
 {
-    public abstract Task<long> Count();
+    public abstract Task<long> CountAsync();
 
     public abstract Task<List<long>> Keys();
 

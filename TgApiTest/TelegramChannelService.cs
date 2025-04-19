@@ -19,6 +19,8 @@ public class TelegramChannelService : IDisposable
     private readonly string channelReference;
 
     private const int delayBetweenParticipantsRequestsMilliseconds = 1050;
+    
+    public double LastsearchParicipantsDurationSeconds { get; private set; } = 0;
 
     public TelegramChannelService(TelegramConfig config, string? channelReference)
     {
@@ -74,7 +76,10 @@ public class TelegramChannelService : IDisposable
                 Console.WriteLine($"📢 Channel: {channel.MainUsername}");
                 try
                 {
-                    using var timer = new ExecutionTimer("Безопасный поиск всех подписчиков");
+                    using var timer = new ExecutionTimer(
+                        "Безопасный поиск всех подписчиков",
+                        t => LastsearchParicipantsDurationSeconds = t.TotalSeconds);
+
                     var participants = await Safe_GetAllParticipants(
                         channel,
                         delayBetweenRequestsMilliseconds: delayBetweenParticipantsRequestsMilliseconds);

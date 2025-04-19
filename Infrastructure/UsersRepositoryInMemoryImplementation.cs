@@ -57,7 +57,7 @@ public class UsersRepositoryInMemoryImplementation : UserRepository
         }
     }
 
-    public override async Task<long> Count()
+    public override async Task<long> CountAsync()
     {
         return await context.ChannelMembers.LongCountAsync();
     }
