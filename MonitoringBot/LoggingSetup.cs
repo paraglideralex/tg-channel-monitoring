@@ -5,15 +5,11 @@ public class LoggingSetup
 {
     public static void SetupLogging()
     {
-        // Получаем абсолютный путь к директории логов
         string logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
         string logFilePath = Path.Combine(logDirectory, "log.txt");
 
-        // Создаём директорию, если её нет
         if (!Directory.Exists(logDirectory))
-        {
             Directory.CreateDirectory(logDirectory);
-        }
 
         Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Debug()
@@ -27,6 +23,6 @@ public class LoggingSetup
             )
         .CreateLogger();
 
-         Log.Warning($"Логи будут записываться в файл: {logFilePath}");
+         Log.Debug($"Логи будут записываться в файл: {logFilePath}");
     }
 }

@@ -3,9 +3,6 @@ using MonitoringBot.Infrastructure.Diagnostics;
 
 using Serilog;
 
-using System.Collections.Generic;
-using System.Reflection.Metadata;
-
 using TgChannelApi;
 
 using TL;
@@ -64,41 +61,63 @@ public class TelegramChannelService : IDisposable
         Log.Information($"✅ Logged in as: {user.username ?? user.first_name}");
     }
 
-    public async Task<List<ChannelMember>> GetChannelMembersAsync()
+    public async Task<List<ChannelMember>?> TryGetChannelMembersAsync()
     {
-        var members = new List<ChannelMember>();
+        List<ChannelMember> members = new();
 
-        var dialogs = await client.Messages_GetAllDialogs();
+        Messages_Dialogs? dialogs = null;
+        try
+        {
+            dialogs = await client.Messages_GetAllDialogs();
+        }
+        catch (RpcException ex)
+        {
+            Log.Error($"Исключение на уровне RPC Telegram API во время получения диалогов: {ex.Message}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Неопознанное исключение Telegram API во время получения диалогов: {ex.Message}");
+            return null;
+        }
+
+        if (dialogs is null)
+            return null;
+
         foreach (var peer in dialogs.chats.Values)
         {
             if (peer is Channel channel && channel.IsChannel && channel.MainUsername == channelReference)
             {
-                Console.WriteLine($"📢 Channel: {channel.MainUsername}");
+                using var timer = new ExecutionTimer(
+                    "Безопасный поиск всех подписчиков",
+                    t => LastsearchParicipantsDurationSeconds = t.TotalSeconds);
+
+                Channels_ChannelParticipants? participants = null;
                 try
                 {
-                    using var timer = new ExecutionTimer(
-                        "Безопасный поиск всех подписчиков",
-                        t => LastsearchParicipantsDurationSeconds = t.TotalSeconds);
-
-                    var participants = await Safe_GetAllParticipants(
-                        channel,
-                        delayBetweenRequestsMilliseconds: delayBetweenParticipantsRequestsMilliseconds);
-
-                    var result = participants.users.Values;
-
-                    foreach (var user in result)
-                    {
-                        members.Add(ToChannelMember(user));
-                    }
-                    Log.Debug($"Успешный импорт {result.Count} участников канала");
+                    participants = await Safe_GetAllParticipants(channel,
+                                                                    delayBetweenRequestsMilliseconds: delayBetweenParticipantsRequestsMilliseconds);
                 }
                 catch (RpcException ex)
                 {
-                    Log.Error($"Нету прав на просмотр юзеров, текст: {ex.Message}");
+                    Log.Error($"Исключение на уровне RPC Telegram API во время получения всех участников: {ex.Message}");
                 }
+                catch (Exception ex)
+                {
+                    Log.Error($"Неопознанное исключение Telegram API во время получения всех участников: {ex.Message}");
+                }
+
+                if (participants is null)
+                    return null;
+
+                var result = participants.users.Values;
+
+                foreach (var user in result)
+                    members.Add(ToChannelMember(user));
+
+                Log.Debug($"Успешный импорт {result.Count} участников канала");
             }
         }
-
         return members;
     }
 

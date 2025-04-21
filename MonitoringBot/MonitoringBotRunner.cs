@@ -49,9 +49,17 @@ public class MonitoringBotRunner : IDisposable
             await ProcessMonitoringAsync();
     }
 
+    
+
     private async Task ProcessMonitoringAsync()
     {
-        var users = await telegramService.GetChannelMembersAsync();
+        // Будет добавлен фоновый сервис мониторинга, получать через него из его поля UsersSnapshot
+        var users = await telegramService.TryGetChannelMembersAsync(); // TODO: просто получать из хранилища или из поля сервиса
+        if(users is null)
+        {
+            Log.Warning("Импорт подписчиков канала не выполнен, подписчики не получены.");
+            return;
+        }
 
         await monitoringEngine.MonitoringStep(users);
 
@@ -116,9 +124,8 @@ public class MonitoringBotRunner : IDisposable
                 {
                     "/info" => messageBuilder.Info(channelReference),
                     "/last" => await messageBuilder.Last(),
-                    "/check" => "тут будет мгновенная стата",
-                    "/change_period" => "будет менять период мониторингка",
-                    "_check" => await messageBuilder.CheckDiagnostics(
+                    "/change_period" => "будет менять период мониторинга",
+                    "/check" => await messageBuilder.CheckDiagnostics(
                                       checkPeriodSeconds, 
                                       telegramService.LastsearchParicipantsDurationSeconds, 
                                       chatIdCollection.Count),
