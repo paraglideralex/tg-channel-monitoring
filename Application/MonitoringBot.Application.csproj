@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Infrastructure\MonitoringBot.Infrastructure.csproj" />
-    <ProjectReference Include="..\TgApiTest\TgChannelApi.csproj" />
   </ItemGroup>
 
 </Project>

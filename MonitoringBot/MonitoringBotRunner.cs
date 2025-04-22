@@ -42,6 +42,7 @@ public class MonitoringBotRunner : IDisposable
     private int checkPeriodSeconds;
     private DateTime basicTimeStamp;
     private IEnumerable<Update> updates;
+    private DateTime beginWorkingFrom;
     
     private async Task ProcessMonitoringByPeriodAsync()
     {
@@ -49,15 +50,13 @@ public class MonitoringBotRunner : IDisposable
             await ProcessMonitoringAsync();
     }
 
-    
-
     private async Task ProcessMonitoringAsync()
     {
         // Будет добавлен фоновый сервис мониторинга, получать через него из его поля UsersSnapshot
-        var users = await telegramService.TryGetChannelMembersAsync(); // TODO: просто получать из хранилища или из поля сервиса
+        var users = await telegramService.GetChannelMembersAsync(); // TODO: просто получать из хранилища или из поля сервиса
         if(users is null)
         {
-            Log.Warning("Импорт подписчиков канала не выполнен, подписчики не получены.");
+            Log.Warning("Импорт подписчиков канала не выполнен, подписчики в этот раз не получены из телеграм-канала.");
             return;
         }
 
@@ -128,7 +127,8 @@ public class MonitoringBotRunner : IDisposable
                     "/check" => await messageBuilder.CheckDiagnostics(
                                       checkPeriodSeconds, 
                                       telegramService.LastsearchParicipantsDurationSeconds, 
-                                      chatIdCollection.Count),
+                                      chatIdCollection.Count,
+                                      beginWorkingFrom),
                     _ => null
                 };
 
@@ -173,6 +173,7 @@ public class MonitoringBotRunner : IDisposable
     public async Task InitializeAsync()
     {
         basicTimeStamp = DateTime.Now;
+        beginWorkingFrom = DateTime.Now;
 
         updates = await telegramBotClient.GetUpdatesAsync();
         await telegramService.LoginAsync();

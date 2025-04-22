@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Infrastructure;
+using MonitoringBot.Infrastructure.Persistence;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,8 @@ public class MessageBuilder(UserRepository userRepository)
 {
     public async Task<string> CheckDiagnostics(int dataUpdatePeriodSeconds, 
         double membersCountDurationSeconds,
-        int botSubscribersCount)
+        int botSubscribersCount,
+        DateTime startWorkingTimeStamp)
     {
         var sb = new StringBuilder();
 
@@ -20,6 +22,7 @@ public class MessageBuilder(UserRepository userRepository)
         sb.AppendLine($"Период обновления данных, секунд: {dataUpdatePeriodSeconds}");
         sb.AppendLine($"Время подсчета подписчиков, секунд: {membersCountDurationSeconds}");
         sb.AppendLine($"Количество текущих подписчиков на бота: {botSubscribersCount}");
+        sb.AppendLine($"Запущен: {startWorkingTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
         sb.AppendLine($"Инфа от: {DateTime.Now.ToString("dd.MM.yyyy HH:mm")}");
         return sb.ToString();
     }
