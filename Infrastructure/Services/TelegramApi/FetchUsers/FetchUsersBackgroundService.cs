@@ -1,8 +1,8 @@
 ﻿using Serilog;
 
-namespace MonitoringBot.Infrastructure.Services.TelegramApi;
+namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
-public class FetchUsersBackgroundService: IDisposable
+public class FetchUsersBackgroundService : IDisposable
 {
     private volatile List<ChannelMember> currentUsers = new();
     private readonly TimeSpan updateInterval;

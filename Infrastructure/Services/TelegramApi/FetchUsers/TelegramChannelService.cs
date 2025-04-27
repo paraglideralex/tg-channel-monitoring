@@ -1,10 +1,7 @@
 ﻿using MonitoringBot.Infrastructure;
 using MonitoringBot.Infrastructure.Diagnostics;
-using MonitoringBot.Infrastructure.Services.TelegramApi;
-
+using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 using Serilog;
-
-using TgChannelApi;
 
 using TL;
 
@@ -14,47 +11,12 @@ using Channel = TL.Channel;
 
 public class TelegramChannelService : TelegramApiServiceBase
 {
-    private readonly TelegramConfig config;
-    private readonly Client client;
-    private readonly string channelReference;
 
     private const int delayBetweenParticipantsRequestsMilliseconds = 1050;
 
-    public TelegramChannelService(TelegramConfig config, string? channelReference)
+    public TelegramChannelService(TelegramConfig config, string? channelReference): base(config, channelReference)
     {
-        this.config = config;
-        this.channelReference = channelReference ?? throw new InvalidOperationException("конфиг юзера не задан!!");
-        client = new Client(ResolveConfig);
     }
-
-    private string GetVerificationCode()
-    {
-        Console.Write("verification: ");
-        return Console.ReadLine() ?? "";
-    }
-
-    private string SessionPath()
-    {
-        // works both on Windows and Linux
-        var exeDir = AppContext.BaseDirectory;
-        var sessionDir = exeDir;
-
-        if (!Directory.Exists(sessionDir))
-            Directory.CreateDirectory(sessionDir);
-
-        return Path.Combine(sessionDir, $"session_{channelReference}");
-    }
-
-    private string? ResolveConfig(string what) => what switch
-    {
-        "api_id" => config.ApiId ?? throw new InvalidOperationException("конфиг юзера не задан!!"),
-        "api_hash" => config.ApiHash,
-        "phone_number" => config.PhoneNumber,
-        //"session_key" => Guid.NewGuid().ToString(),
-        "session_pathname" => SessionPath(),
-        "verification_code" => GetVerificationCode(),
-        _ => null
-    };
 
     private async Task<Messages_Dialogs?> TryGetAllDialogsAsync()
     {
@@ -153,12 +115,6 @@ public class TelegramChannelService : TelegramApiServiceBase
                 }
             }
         }
-    }
-
-    public override async Task LoginAsync()
-    {
-        var user = await client.LoginUserIfNeeded();
-        Log.Information($"✅ Logged in as: {user.username ?? user.first_name}");
     }
 
     public override async Task<List<ChannelMember>?> GetChannelMembersAsync()

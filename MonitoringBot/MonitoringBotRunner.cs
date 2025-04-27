@@ -1,6 +1,6 @@
 ﻿using MonitoringBot.Application;
 using MonitoringBot.Infrastructure.Extensions;
-using MonitoringBot.Infrastructure.Services.TelegramApi;
+using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 using MonitoringBot.Presentation;
 
 using Serilog;
@@ -181,6 +181,7 @@ public class MonitoringBotRunner
 
         await TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");
+
 
         await ProcessMonitoringAsync(); // TODO: получить существующих юзеров для мониторинга из базы, когда она таки-будет
     }
