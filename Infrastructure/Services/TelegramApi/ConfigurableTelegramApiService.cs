@@ -5,6 +5,7 @@ using Serilog;
 using WTelegram;
 
 namespace MonitoringBot.Infrastructure.Services.TelegramApi;
+
 public class ConfigurableTelegramApiService
 {
     protected readonly TelegramConfig config;
