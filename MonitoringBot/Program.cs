@@ -3,6 +3,7 @@
 using MonitoringBot;
 using MonitoringBot.Application;
 using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.Services.TelegramApi;
 using MonitoringBot.Presentation;
 
 using Telegram.BotAPI;
@@ -29,6 +30,10 @@ var config = new TelegramConfig(
 
 var telegramService = new TelegramChannelService(config, settingsBuilder.TelegramApiSettings.ChannelReferenceLink);
 
+var backgroundUserFetchService = new FetchUsersBackgroundService(
+    telegramService, 
+    TimeSpan.FromSeconds(settingsBuilder.TelegramBotSettings!.CheckPeriodSeconds));
+
 var client = new TelegramBotClient(settingsBuilder.TelegramBotSettings!.BotToken);
 
 var messageBuilder = new MessageBuilder(userRepository);
@@ -37,7 +42,8 @@ var monitoringPresentation = new MonitoringPresentation(messageBuilder);
 
 var monitoringBotRunner = new MonitoringBotRunner(
     client,
-    telegramService,
+    backgroundUserFetchService,
+//    telegramService,
     messageBuilder,
     monitoringEngine,
     monitoringPresentation,

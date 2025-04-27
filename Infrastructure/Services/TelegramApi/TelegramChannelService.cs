@@ -1,5 +1,6 @@
 ﻿using MonitoringBot.Infrastructure;
 using MonitoringBot.Infrastructure.Diagnostics;
+using MonitoringBot.Infrastructure.Services.TelegramApi;
 
 using Serilog;
 
@@ -11,15 +12,13 @@ using WTelegram;
 
 using Channel = TL.Channel;
 
-public class TelegramChannelService : IDisposable
+public class TelegramChannelService : UserFetcherBase
 {
     private readonly TelegramConfig config;
     private readonly Client client;
     private readonly string channelReference;
 
     private const int delayBetweenParticipantsRequestsMilliseconds = 1050;
-    
-    public double LastsearchParicipantsDurationSeconds { get; private set; } = 0;
 
     public TelegramChannelService(TelegramConfig config, string? channelReference)
     {
@@ -156,13 +155,13 @@ public class TelegramChannelService : IDisposable
         }
     }
 
-    public async Task LoginAsync()
+    public override async Task LoginAsync()
     {
         var user = await client.LoginUserIfNeeded();
         Log.Information($"✅ Logged in as: {user.username ?? user.first_name}");
     }
 
-    public async Task<List<ChannelMember>?> GetChannelMembersAsync()
+    public override async Task<List<ChannelMember>?> GetChannelMembersAsync()
     {
         List<ChannelMember> members = new();
 
@@ -177,7 +176,7 @@ public class TelegramChannelService : IDisposable
             {
                 using var timer = new ExecutionTimer(
                     "Безопасный поиск всех подписчиков",
-                    t => LastsearchParicipantsDurationSeconds = t.TotalSeconds);
+                    t => LastSearchParicipantsDurationSeconds = t.TotalSeconds);
 
                 var participants = await TryGetChannelMembersAsynchh(channel);
 
@@ -189,13 +188,13 @@ public class TelegramChannelService : IDisposable
                 foreach (var user in result)
                     members.Add(ToChannelMember(user));
 
-                Log.Debug($"Успешный импорт {result.Count} участников канала");
+                Log.Debug($"Найдено {result.Count} участников канала");
             }
         }
         return members;
     }
 
-    public void Dispose() => client.Dispose();
+    public override void Dispose() => client.Dispose();
 
     public ChannelMember ToChannelMember(User tgUser) => new
     (

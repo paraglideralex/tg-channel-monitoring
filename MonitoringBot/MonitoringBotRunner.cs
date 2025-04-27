@@ -1,5 +1,6 @@
 ﻿using MonitoringBot.Application;
 using MonitoringBot.Infrastructure.Extensions;
+using MonitoringBot.Infrastructure.Services.TelegramApi;
 using MonitoringBot.Presentation;
 
 using Serilog;
@@ -8,11 +9,12 @@ using Telegram.BotAPI;
 using Telegram.BotAPI.AvailableMethods;
 using Telegram.BotAPI.GettingUpdates;
 
-public class MonitoringBotRunner : IDisposable
+public class MonitoringBotRunner
 {
     public MonitoringBotRunner(
         TelegramBotClient telegramBotClient,
-        TelegramChannelService telegramService,
+        //TelegramChannelService telegramService,
+        FetchUsersBackgroundService fetchUsersBackgroundService,
         MessageBuilder messageBuilder,
         MonitoringEngine monitoringEngine,
         MonitoringPresentation monitoringPresentation,
@@ -21,7 +23,8 @@ public class MonitoringBotRunner : IDisposable
         string channelReference)
     {
         this.telegramBotClient = telegramBotClient;
-        this.telegramService = telegramService;
+        //this.telegramService = telegramService;
+        this.fetchUsersBackgroundService = fetchUsersBackgroundService;
         this.messageBuilder = messageBuilder;
         this.monitoringEngine = monitoringEngine;
         this.monitoringPresentation = monitoringPresentation;
@@ -32,7 +35,8 @@ public class MonitoringBotRunner : IDisposable
     private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
 
     private readonly TelegramBotClient telegramBotClient;
-    private readonly TelegramChannelService telegramService;
+    //private readonly TelegramChannelService telegramService;
+    private readonly FetchUsersBackgroundService fetchUsersBackgroundService;
     private readonly MessageBuilder messageBuilder;
     private readonly MonitoringEngine monitoringEngine;
     private readonly MonitoringPresentation monitoringPresentation;
@@ -53,10 +57,11 @@ public class MonitoringBotRunner : IDisposable
     private async Task ProcessMonitoringAsync()
     {
         // Будет добавлен фоновый сервис мониторинга, получать через него из его поля UsersSnapshot
-        var users = await telegramService.GetChannelMembersAsync(); // TODO: просто получать из хранилища или из поля сервиса
+        //var users = await telegramService.GetChannelMembersAsync(); // TODO: просто получать из хранилища или из поля сервиса
+        var users = fetchUsersBackgroundService.GetSnapshot();
         if(users is null)
         {
-            Log.Warning("Импорт подписчиков канала не выполнен, подписчики в этот раз не получены из телеграм-канала.");
+            Log.Warning("Неполадки на стороне сервиса Tg API, подписчики не получены из телеграм-канала.");
             return;
         }
 
@@ -126,7 +131,7 @@ public class MonitoringBotRunner : IDisposable
                     "/change_period" => "будет менять период мониторинга",
                     "/check" => await messageBuilder.CheckDiagnostics(
                                       checkPeriodSeconds, 
-                                      telegramService.LastsearchParicipantsDurationSeconds, 
+                                      fetchUsersBackgroundService.GetFetchDuration(), 
                                       chatIdCollection.Count,
                                       beginWorkingFrom),
                     _ => null
@@ -176,7 +181,8 @@ public class MonitoringBotRunner : IDisposable
         beginWorkingFrom = DateTime.Now;
 
         updates = await telegramBotClient.GetUpdatesAsync();
-        await telegramService.LoginAsync();
+        await fetchUsersBackgroundService.LoginAsync();
+        fetchUsersBackgroundService.Start();
 
         await TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");
@@ -191,10 +197,5 @@ public class MonitoringBotRunner : IDisposable
             await ProcessMonitoringByPeriodAsync();
             await CheckAndProcessInputsAsync();
         }
-    }
-
-    public void Dispose()
-    {
-        telegramService?.Dispose();
     }
 }
