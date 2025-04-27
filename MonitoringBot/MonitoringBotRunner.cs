@@ -13,7 +13,6 @@ public class MonitoringBotRunner
 {
     public MonitoringBotRunner(
         TelegramBotClient telegramBotClient,
-        //TelegramChannelService telegramService,
         FetchUsersBackgroundService fetchUsersBackgroundService,
         MessageBuilder messageBuilder,
         MonitoringEngine monitoringEngine,
@@ -23,7 +22,6 @@ public class MonitoringBotRunner
         string channelReference)
     {
         this.telegramBotClient = telegramBotClient;
-        //this.telegramService = telegramService;
         this.fetchUsersBackgroundService = fetchUsersBackgroundService;
         this.messageBuilder = messageBuilder;
         this.monitoringEngine = monitoringEngine;
@@ -35,7 +33,6 @@ public class MonitoringBotRunner
     private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
 
     private readonly TelegramBotClient telegramBotClient;
-    //private readonly TelegramChannelService telegramService;
     private readonly FetchUsersBackgroundService fetchUsersBackgroundService;
     private readonly MessageBuilder messageBuilder;
     private readonly MonitoringEngine monitoringEngine;
@@ -56,8 +53,6 @@ public class MonitoringBotRunner
 
     private async Task ProcessMonitoringAsync()
     {
-        // Будет добавлен фоновый сервис мониторинга, получать через него из его поля UsersSnapshot
-        //var users = await telegramService.GetChannelMembersAsync(); // TODO: просто получать из хранилища или из поля сервиса
         var users = fetchUsersBackgroundService.GetSnapshot();
         if(users is null)
         {

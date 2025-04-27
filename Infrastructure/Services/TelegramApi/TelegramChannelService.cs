@@ -12,7 +12,7 @@ using WTelegram;
 
 using Channel = TL.Channel;
 
-public class TelegramChannelService : UserFetcherBase
+public class TelegramChannelService : TelegramApiServiceBase
 {
     private readonly TelegramConfig config;
     private readonly Client client;

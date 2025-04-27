@@ -6,7 +6,7 @@ public class FetchUsersBackgroundService: IDisposable
 {
     private volatile List<ChannelMember> currentUsers = new();
     private readonly TimeSpan updateInterval;
-    private readonly UserFetcherBase telegramService;
+    private readonly TelegramApiServiceBase telegramService;
     private CancellationTokenSource cancellationTokenSource = new();
 
     public FetchUsersBackgroundService(TelegramChannelService telegramService, TimeSpan updateInterval)
@@ -51,8 +51,5 @@ public class FetchUsersBackgroundService: IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        telegramService?.Dispose();
-    }
+    public void Dispose() => telegramService?.Dispose();
 }
