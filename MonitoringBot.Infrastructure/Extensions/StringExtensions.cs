@@ -8,6 +8,4 @@ public static class StringExtensions
         ? input
         : string.Concat(input.AsSpan(0, firstSymbolsCount), ".....");
     }
-
-
 }

@@ -1,4 +1,6 @@
-﻿using Serilog;
+﻿using MonitoringBot.Domain.Entities;
+
+using Serilog;
 
 namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 

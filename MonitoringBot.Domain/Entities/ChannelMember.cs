@@ -1,4 +1,4 @@
-﻿namespace MonitoringBot.Infrastructure;
+﻿namespace MonitoringBot.Domain.Entities;
 
 public sealed class ChannelMember
 {

@@ -2,9 +2,13 @@
 
 using MonitoringBot;
 using MonitoringBot.Application;
+using MonitoringBot.Application.Queries;
+using MonitoringBot.Application.Services;
+using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure.Persistence;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 using MonitoringBot.Presentation;
+using MonitoringBot.Services.MessagesSending;
 
 using Telegram.BotAPI;
 
@@ -35,14 +39,24 @@ var backgroundUserFetchService = new FetchUsersBackgroundService(
 var client = new TelegramBotClient(settingsBuilder.TelegramBotSettings!.BotToken);
 
 var messageBuilder = new MessageBuilder(userRepository);
-var monitoringEngine = new MonitoringEngine(userRepository);
+var monitoringEngine = new SubscribersChangeDetector();
+var getAllQuery = new GetAllCurrentSubscribersQuery(userRepository);
+
+
+
+var monitoringProcessor = new SubscribersChangeProcessor(userRepository);
 var monitoringPresentation = new MonitoringPresentation(messageBuilder);
 
+var messagesService = new MessagesSendingService(client, monitoringPresentation, settingsBuilder.TelegramBotSettings.ChatIdsCollection);
+
 var monitoringBotRunner = new MonitoringBotRunner(
+    monitoringEngine,
+    getAllQuery,
+    messagesService,
     client,
     backgroundUserFetchService,
     messageBuilder,
-    monitoringEngine,
+    monitoringProcessor,
     monitoringPresentation,
     settingsBuilder.TelegramBotSettings.ChatIdsCollection,
     settingsBuilder.TelegramBotSettings.CheckPeriodSeconds,

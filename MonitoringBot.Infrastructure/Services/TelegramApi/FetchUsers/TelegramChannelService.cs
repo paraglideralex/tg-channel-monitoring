@@ -1,6 +1,7 @@
-﻿using MonitoringBot.Infrastructure;
+﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure.Diagnostics;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
+
 using Serilog;
 
 using TL;
@@ -36,7 +37,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         }
     }
 
-    private async Task<Channels_ChannelParticipants?> TryGetChannelMembersAsynchh(Channel channel)
+    private async Task<Channels_ChannelParticipants?> TryGetChannelMembersAsync(Channel channel)
     {
         try
         {
@@ -87,7 +88,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         result.participants = [.. participants];
         return result;
 
-        async Task GetWithFilter<T>(T filter, Func<T, char, T> recurse = null, string? alphabet = null) where T : ChannelParticipantsFilter
+        async Task GetWithFilter<T>(T filter, Func<T, char, T>? recurse = null, string? alphabet = null) where T : ChannelParticipantsFilter
         {
             Channels_ChannelParticipants ccp;
             int maxCount = 0;
@@ -121,6 +122,7 @@ public class TelegramChannelService : TelegramApiServiceBase
     {
         List<ChannelMember> members = new();
 
+        // TODO все диалоги и конкретный чат с каналом получать один раз при инициализации
         Messages_Dialogs? dialogs = await TryGetAllDialogsAsync();
 
         if (dialogs is null)
@@ -134,7 +136,7 @@ public class TelegramChannelService : TelegramApiServiceBase
                     "Безопасный поиск всех подписчиков",
                     t => LastSearchParicipantsDurationSeconds = t.TotalSeconds);
 
-                var participants = await TryGetChannelMembersAsynchh(channel);
+                var participants = await TryGetChannelMembersAsync(channel);
 
                 if (participants is null)
                     return null;

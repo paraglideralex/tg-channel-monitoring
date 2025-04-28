@@ -1,10 +1,13 @@
-﻿namespace MonitoringBot.Infrastructure;
+﻿using MonitoringBot.Domain.Entities;
+
+namespace MonitoringBot.Infrastructure;
 
 public abstract class UserRepository
 {
     public abstract Task<long> CountAsync();
 
     public abstract Task<List<long>> Keys();
+    public abstract Task<List<ChannelMember>> All();
 
     public abstract Task Add(ChannelMember user);
 

@@ -1,61 +1,55 @@
-﻿using Microsoft.EntityFrameworkCore;
-using MonitoringBot.Application.Services;
-using MonitoringBot.Domain.Entities;
-using MonitoringBot.Infrastructure;
-using MonitoringBot.Infrastructure.Persistence;
-
-using Moq;
+﻿using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Services;
 
 using NUnit.Framework;
 
-namespace MonitoringBot.Application.Tests;
+namespace MonitoringBot.Domain.Tests;
 
-public class MonitoringEngineTests
+public class SubscribersChangeDetectorTests
 {
-    private UsersRepositoryInMemoryImplementation? usersRepository;
-    private SubscribersChangeProcessor? monitoringEngine;
-    private MonitoringBotDbContextBase? dbContext;
+    private SubscribersChangeDetector? subscribersChangeDetector;
+    private ProcessorSubscriber? subscriber;
 
     [SetUp]
     public void SetUp()
     {
-        var options = new DbContextOptionsBuilder<MonitoringBotDbContextInMemory>()
-            .UseInMemoryDatabase("InMemoryDb")
-            .Options;
-        dbContext = new MonitoringBotDbContextInMemory(options);
-
-        usersRepository = new UsersRepositoryInMemoryImplementation(dbContext);
-        monitoringEngine = new SubscribersChangeProcessor(usersRepository);
+        subscribersChangeDetector = new SubscribersChangeDetector();
+        subscriber = new ProcessorSubscriber();
+        subscribersChangeDetector.SubscribersChanged += subscriber.OnEvent;
     }
 
-    //[Test]
-    //public async Task BasicAddition_Success()
-    //{
-    //    // Arrange
-    //    var existingUsers = new List<ChannelMember>() { new ChannelMember(55, "test1", false, "test1", "test1", "79999998888",
-    //        new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)) };
-        
-    //    await usersRepository!.AddRange(existingUsers);
+    [Test]
+    public async Task BasicAddition_Success()
+    {
+        // Arrange
+        var existingUsers = new List<ChannelMember>()
+        { 
+            new ChannelMember(55, "test1", false, "test1", "test1", "79999998888", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)) 
+        };
 
-    //    var newUsers = new List<ChannelMember>()
-    //    {
-    //        new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
-    //    };
 
-    //    var incommingUsers = new List<ChannelMember>()
-    //    {
-    //        existingUsers[0],
-    //        newUsers[0]
-    //    };
+        var newUsers = new List<ChannelMember>()
+        {
+            new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
+        };
 
-    //    await monitoringEngine!.MonitoringStep(incommingUsers);
+        var incommingUsers = new List<ChannelMember>()
+        {
+            existingUsers[0],
+            newUsers[0]
+        };
 
-    //    Assert.That(monitoringEngine.CurrentStepDifferenceCount, Is.EqualTo(1));
-    //    Assert.That(monitoringEngine.CurrentStepMemberDifference.Count(), Is.EqualTo(1));
-    //    Assert.That(monitoringEngine.CurrentStepMemberDifference.First().Id, Is.EqualTo(77));
+        var result = await subscribersChangeDetector.ExecuteMonitoring();
 
-    //    Assert.That(dbContext!.ChannelMembers.Count(), Is.EqualTo(2));
-    //}
+        await monitoringEngine!.MonitoringStep(incommingUsers);
+
+        Assert.That(monitoringEngine.CurrentStepDifferenceCount, Is.EqualTo(1));
+        Assert.That(monitoringEngine.CurrentStepMemberDifference.Count(), Is.EqualTo(1));
+        Assert.That(monitoringEngine.CurrentStepMemberDifference.First().Id, Is.EqualTo(77));
+
+        Assert.That(dbContext!.ChannelMembers.Count(), Is.EqualTo(2));
+    }
 
     //[Test]
     //public async Task RangeAddition_Success()
@@ -144,4 +138,10 @@ public class MonitoringEngineTests
 
     //    Assert.That(dbContext!.ChannelMembers.Count(), Is.EqualTo(2));
     //}
+
+}
+
+internal sealed class ProcessorSubscriber
+{
+    public SubscribersChangedEventArgs OnEvent(object? sender, SubscribersChangedEventArgs e) => e;
 }

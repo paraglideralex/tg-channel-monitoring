@@ -1,41 +1,52 @@
-﻿using MonitoringBot.Application;
+﻿using MonitoringBot.Application.Queries;
+using MonitoringBot.Application.Services;
+using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 using MonitoringBot.Presentation;
+using MonitoringBot.Services.MessagesSending;
 
 using Serilog;
 
 using Telegram.BotAPI;
-using Telegram.BotAPI.AvailableMethods;
 using Telegram.BotAPI.GettingUpdates;
 
 public class MonitoringBotRunner
 {
     public MonitoringBotRunner(
+        SubscribersChangeDetector subscriberChangeDetector,
+        GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery,
+        MessagesSendingService messagesSendingService,
         TelegramBotClient telegramBotClient,
         FetchUsersBackgroundService fetchUsersBackgroundService,
         MessageBuilder messageBuilder,
-        MonitoringEngine monitoringEngine,
+        SubscribersChangeProcessor subscribersChangeProcessor,
         MonitoringPresentation monitoringPresentation,
         List<long> chatIdCollection,
         int checkPeriodSeconds,
         string channelReference)
     {
+        this.subscriberChangeDetector = subscriberChangeDetector;
+        this.getAllCurrentSubscribersQuery = getAllCurrentSubscribersQuery;
+        this.messagesSendingService = messagesSendingService;
         this.telegramBotClient = telegramBotClient;
         this.fetchUsersBackgroundService = fetchUsersBackgroundService;
         this.messageBuilder = messageBuilder;
-        this.monitoringEngine = monitoringEngine;
+        this.subscribersChangeProcessor = subscribersChangeProcessor;
         this.monitoringPresentation = monitoringPresentation;
         this.chatIdCollection = chatIdCollection;
         this.checkPeriodSeconds = checkPeriodSeconds;
         this.channelReference = channelReference;
     }
-    private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
+    //private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
 
+    private readonly SubscribersChangeDetector subscriberChangeDetector;
+    private readonly GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
+    private readonly MessagesSendingService messagesSendingService;
     private readonly TelegramBotClient telegramBotClient;
     private readonly FetchUsersBackgroundService fetchUsersBackgroundService;
     private readonly MessageBuilder messageBuilder;
-    private readonly MonitoringEngine monitoringEngine;
+    private readonly SubscribersChangeProcessor subscribersChangeProcessor;
     private readonly MonitoringPresentation monitoringPresentation;
     private readonly List<long> chatIdCollection;
     private readonly string channelReference;
@@ -48,60 +59,68 @@ public class MonitoringBotRunner
     private async Task ProcessMonitoringByPeriodAsync()
     {
         if ((DateTime.Now - basicTimeStamp).TotalSeconds > checkPeriodSeconds)
+        {
             await ProcessMonitoringAsync();
+            basicTimeStamp = DateTime.Now;
+        }
     }
 
     private async Task ProcessMonitoringAsync()
     {
-        var users = fetchUsersBackgroundService.GetSnapshot();
-        if(users is null)
+        var apiUsers = fetchUsersBackgroundService.GetSnapshot();
+        if(apiUsers is null)
         {
             Log.Warning("Неполадки на стороне сервиса Tg API, подписчики не получены из телеграм-канала.");
             return;
         }
 
-        await monitoringEngine.MonitoringStep(users);
+        var databaseUsers = await getAllCurrentSubscribersQuery.ExecuteAsync();
 
-        var resultingMessage = monitoringPresentation.FormatLeftOrJoinedUsers(
-            monitoringEngine.CurrentStepDifferenceCount,
-            monitoringEngine.CurrentStepMemberDifference);
+        await subscriberChangeDetector.ExecuteMonitoring(apiUsers, databaseUsers);
+        // дальше сервисы-подписчики делают своё дело - пишут в базу и отправляют сообщения
 
-        if (monitoringEngine.CurrentStepDifferenceCount != 0)
-        {
-            await TrySendMessageForAllAsync(chatIdCollection, resultingMessage);
-            Log.Information($"Обработано изменение количества участников на {monitoringEngine.CurrentStepDifferenceCount}");
-        }
-        else
-        {
-            Log.Information($"Ничего не происходить {DateTime.Now}");
-        }
-        basicTimeStamp = DateTime.Now;
+        //await monitoringEngine.MonitoringStep(users);
+
+        //var resultingMessage = monitoringPresentation.FormatLeftOrJoinedUsers(
+        //    monitoringEngine.CurrentStepDifferenceCount,
+        //    monitoringEngine.CurrentStepMemberDifference);
+
+        //if (monitoringEngine.CurrentStepDifferenceCount != 0)
+        //{
+        //    await TrySendMessageForAllAsync(chatIdCollection, resultingMessage);
+        //    Log.Information($"Обработано изменение количества участников на {monitoringEngine.CurrentStepDifferenceCount}");
+        //}
+        //else
+        //{
+        //    Log.Information($"Ничего не происходить {DateTime.Now}");
+        //}
+        
     }
 
-    private async Task TrySendMessageForAllAsync(List<long> chatIdsCollection, string? message)
-    {
-        var tasks = new List<Task>();
-        foreach (var id in chatIdCollection)
-            tasks.Add(TrySendMessageAsync(id, message));
+    //private async Task TrySendMessageForAllAsync(List<long> chatIdsCollection, string? message)
+    //{
+    //    var tasks = new List<Task>();
+    //    foreach (var id in chatIdCollection)
+    //        tasks.Add(TrySendMessageAsync(id, message));
 
-        await Task.WhenAll(tasks);
-    }
+    //    await Task.WhenAll(tasks);
+    //}
 
-    private async Task TrySendMessageAsync(long id, string? message)
-    {
-        try
-        {
-            await telegramBotClient.SendMessageAsync(
-                id, 
-                message.TakeAndFormatFirst(telegramMessageLengthLimit) ?? "Пустое сообщение",
-                parseMode: FormatStyles.HTML);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-            Log.Error($"Сообщение в ответ на запрос не было отправлено id: {id}, message:{message.TakeAndFormatFirst(300)}");
-        }
-    }
+    //private async Task TrySendMessageAsync(long id, string? message)
+    //{
+    //    try
+    //    {
+    //        await telegramBotClient.SendMessageAsync(
+    //            id, 
+    //            message.TakeAndFormatFirst(telegramMessageLengthLimit) ?? "Пустое сообщение",
+    //            parseMode: FormatStyles.HTML);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        Console.WriteLine(ex.Message);
+    //        Log.Error($"Сообщение в ответ на запрос не было отправлено id: {id}, message:{message.TakeAndFormatFirst(300)}");
+    //    }
+    //}
 
     private async Task CheckAndProcessInputsAsync()
     {
@@ -141,7 +160,7 @@ public class MonitoringBotRunner
 
                 if (resultMessage is not null)
                 {
-                    await TrySendMessageAsync(chatId, resultMessage);
+                    await messagesSendingService.TrySendMessageAsync(chatId, resultMessage);
                     Log.Information($"Пользователю {chatId} отправлен ответ на {message}: '{resultMessage.TakeAndFormatFirst(300)}'.");
                 }
             }
@@ -179,9 +198,11 @@ public class MonitoringBotRunner
         await fetchUsersBackgroundService.LoginAsync();
         fetchUsersBackgroundService.Start();
 
-        await TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
-        Log.Information($"{GetType()} загрузился успешно.");
+        subscriberChangeDetector.SubscribersChanged += subscribersChangeProcessor.OnSubscribersChanged;
+        subscriberChangeDetector.SubscribersChanged += messagesSendingService.OnSubscribersChanged;
 
+        await messagesSendingService.TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
+        Log.Information($"{GetType()} загрузился успешно.");
 
         await ProcessMonitoringAsync(); // TODO: получить существующих юзеров для мониторинга из базы, когда она таки-будет
     }

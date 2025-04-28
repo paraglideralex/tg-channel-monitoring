@@ -12,7 +12,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Infrastructure\MonitoringBot.Infrastructure.csproj" />
+    <ProjectReference Include="..\MonitoringBot.Infrastructure\MonitoringBot.Infrastructure.csproj" />
+    <ProjectReference Include="..\MonitoringBot.Domain\MonitoringBot.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Commands\" />
   </ItemGroup>
 
 </Project>

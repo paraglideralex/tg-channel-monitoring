@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
+using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure;
 using MonitoringBot.Infrastructure.Persistence;
 
@@ -94,5 +95,10 @@ public class UsersRepositoryInMemoryImplementation : UserRepository
         var ordered = context.ChannelMembers.OrderByDescending(m => m.JoinedAt);
         var taken = ordered.Count() >= count ? ordered.Take(count) : ordered;
         return await taken.Select(t => t.ToDomain()).ToListAsync();
+    }
+
+    public override Task<List<ChannelMember>> All()
+    {
+        throw new NotImplementedException();
     }
 }

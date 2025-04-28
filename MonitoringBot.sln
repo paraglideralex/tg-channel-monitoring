@@ -5,15 +5,17 @@ VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonitoringBot", "MonitoringBot\MonitoringBot.csproj", "{FF439A0E-CF54-4428-8D21-3FFD628E5623}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonitoringBot.Infrastructure", "Infrastructure\MonitoringBot.Infrastructure.csproj", "{F73B7620-0CC6-4F6B-89B6-B952B7B1732B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonitoringBot.Infrastructure", "MonitoringBot.Infrastructure\MonitoringBot.Infrastructure.csproj", "{F73B7620-0CC6-4F6B-89B6-B952B7B1732B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonitoringBot.Application", "Application\MonitoringBot.Application.csproj", "{653DC86D-992E-4911-9E3A-8E06FCDDF8B4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonitoringBot.Application", "MonitoringBot.Application\MonitoringBot.Application.csproj", "{653DC86D-992E-4911-9E3A-8E06FCDDF8B4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonitoringBot.Application.Tests", "MonitoringBot.Application.Tests\MonitoringBot.Application.Tests.csproj", "{7EA4D519-D1AF-406C-BEA7-8CD6C30CC819}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{930B343C-F8DF-41F0-9DAC-AC36833BEA89}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitoringBot.Domain", "MonitoringBot.Domain\MonitoringBot.Domain.csproj", "{ADB493F2-42B5-45D8-8D35-6EF49853F225}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonitoringBot.Domain", "MonitoringBot.Domain\MonitoringBot.Domain.csproj", "{ADB493F2-42B5-45D8-8D35-6EF49853F225}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitoringBot.Domain.Tests", "MonitoringBot.Domain.Tests\MonitoringBot.Domain.Tests.csproj", "{5D969316-BADD-492F-AC47-96CDC428B09F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,12 +43,17 @@ Global
 		{ADB493F2-42B5-45D8-8D35-6EF49853F225}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADB493F2-42B5-45D8-8D35-6EF49853F225}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ADB493F2-42B5-45D8-8D35-6EF49853F225}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D969316-BADD-492F-AC47-96CDC428B09F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D969316-BADD-492F-AC47-96CDC428B09F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D969316-BADD-492F-AC47-96CDC428B09F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D969316-BADD-492F-AC47-96CDC428B09F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{7EA4D519-D1AF-406C-BEA7-8CD6C30CC819} = {930B343C-F8DF-41F0-9DAC-AC36833BEA89}
+		{5D969316-BADD-492F-AC47-96CDC428B09F} = {930B343C-F8DF-41F0-9DAC-AC36833BEA89}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3E06F83D-6159-465A-914C-40BE8DD5A22C}

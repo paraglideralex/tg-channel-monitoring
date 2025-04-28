@@ -1,4 +1,6 @@
-﻿namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
+﻿using MonitoringBot.Domain.Entities;
+
+namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
 public abstract class TelegramApiServiceBase : ConfigurableTelegramApiService, IDisposable
 {

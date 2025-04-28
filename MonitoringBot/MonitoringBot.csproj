@@ -19,8 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Application\MonitoringBot.Application.csproj" />
-    <ProjectReference Include="..\Infrastructure\MonitoringBot.Infrastructure.csproj" />
+    <ProjectReference Include="..\MonitoringBot.Application\MonitoringBot.Application.csproj" />
+    <ProjectReference Include="..\MonitoringBot.Infrastructure\MonitoringBot.Infrastructure.csproj" />
+    <ProjectReference Include="..\MonitoringBot.Domain\MonitoringBot.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
