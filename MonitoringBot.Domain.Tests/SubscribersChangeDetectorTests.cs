@@ -23,32 +23,22 @@ public class SubscribersChangeDetectorTests
     public async Task BasicAddition_Success()
     {
         // Arrange
-        var existingUsers = new List<ChannelMember>()
+        var fromRepository = new List<ChannelMember>()
         { 
             new ChannelMember(55, "test1", false, "test1", "test1", "79999998888", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)) 
         };
 
 
-        var newUsers = new List<ChannelMember>()
+        var fromApi = new List<ChannelMember>()
         {
             new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
         };
 
-        var incommingUsers = new List<ChannelMember>()
-        {
-            existingUsers[0],
-            newUsers[0]
-        };
+        await subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
 
-        var result = await subscribersChangeDetector.ExecuteMonitoring();
-
-        await monitoringEngine!.MonitoringStep(incommingUsers);
-
-        Assert.That(monitoringEngine.CurrentStepDifferenceCount, Is.EqualTo(1));
-        Assert.That(monitoringEngine.CurrentStepMemberDifference.Count(), Is.EqualTo(1));
-        Assert.That(monitoringEngine.CurrentStepMemberDifference.First().Id, Is.EqualTo(77));
-
-        Assert.That(dbContext!.ChannelMembers.Count(), Is.EqualTo(2));
+        Assert.That(subscriber!.EventArgs?.DifferenceCount, Is.EqualTo(1));
+        Assert.That(subscriber!.EventArgs?.MemberDifference.Count(), Is.EqualTo(1));
+        Assert.That(subscriber!.EventArgs?.MemberDifference.First().Id, Is.EqualTo(77));
     }
 
     //[Test]
@@ -143,5 +133,9 @@ public class SubscribersChangeDetectorTests
 
 internal sealed class ProcessorSubscriber
 {
-    public SubscribersChangedEventArgs OnEvent(object? sender, SubscribersChangedEventArgs e) => e;
+    public SubscribersChangedEventArgs? EventArgs { get; private set; }
+    public async Task OnEvent(object? sender, SubscribersChangedEventArgs e)
+    {
+        EventArgs = e;
+    }
 }
