@@ -20,7 +20,7 @@ public class SubscribersChangeDetector
         IEnumerable<ChannelMember> usersCollectionFromApi,
         IEnumerable<ChannelMember> usersCollectionFromRepository) => 
 
-        usersCollectionFromRepository.SymmetricDifference(usersCollectionFromRepository).ToList();
+        usersCollectionFromRepository.SymmetricDifference(usersCollectionFromApi).ToList();
 
     private int UsersDifferenceCount(
         IEnumerable<ChannelMember> usersCollectionFromApi,
