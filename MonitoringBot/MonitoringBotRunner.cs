@@ -1,5 +1,6 @@
 ﻿using MonitoringBot.Application.Queries;
 using MonitoringBot.Application.Services;
+using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
@@ -14,9 +15,9 @@ using Telegram.BotAPI.GettingUpdates;
 public class MonitoringBotRunner
 {
     public MonitoringBotRunner(
-        SubscribersChangeDetector subscriberChangeDetector,
+        EntitiesChangeDetector<ChannelMember> subscriberChangeDetector,
         GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery,
-        MessagesSendingService messagesSendingService,
+        EntitiesChangeMessagingService<ChannelMember> messagesSendingService,
         TelegramBotClient telegramBotClient,
         FetchUsersBackgroundService fetchUsersBackgroundService,
         MessageBuilder messageBuilder,
@@ -40,9 +41,9 @@ public class MonitoringBotRunner
     }
     //private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
 
-    private readonly SubscribersChangeDetector subscriberChangeDetector;
+    private readonly EntitiesChangeDetector<ChannelMember> subscriberChangeDetector;
     private readonly GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
-    private readonly MessagesSendingService messagesSendingService;
+    private readonly EntitiesChangeMessagingService<ChannelMember> messagesSendingService;
     private readonly TelegramBotClient telegramBotClient;
     private readonly FetchUsersBackgroundService fetchUsersBackgroundService;
     private readonly MessageBuilder messageBuilder;
@@ -198,8 +199,8 @@ public class MonitoringBotRunner
         await fetchUsersBackgroundService.LoginAsync();
         fetchUsersBackgroundService.Start();
 
-        subscriberChangeDetector.SubscribersChanged += subscribersChangeProcessor.OnSubscribersChanged;
-        subscriberChangeDetector.SubscribersChanged += messagesSendingService.OnSubscribersChanged;
+        subscriberChangeDetector.EntitiesChanged += subscribersChangeProcessor.OnSubscribersChanged;
+        subscriberChangeDetector.EntitiesChanged += messagesSendingService.OnSubscribersChanged;
 
         await messagesSendingService.TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");

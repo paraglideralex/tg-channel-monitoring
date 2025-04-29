@@ -8,7 +8,7 @@ namespace MonitoringBot.Domain.Tests;
 
 public class SubscribersChangeDetectorTests
 {
-    private SubscribersChangeDetector? subscribersChangeDetector;
+    private EntitiesChangeDetector<ChannelMember>? subscribersChangeDetector;
     private ProcessorSubscriber? subscriber;
     private List<ChannelMember>? allChannelMembers;
 
@@ -23,9 +23,9 @@ public class SubscribersChangeDetectorTests
             new(99, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
         ];
 
-        subscribersChangeDetector = new SubscribersChangeDetector();
+        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember>();
         subscriber = new ProcessorSubscriber();
-        subscribersChangeDetector.SubscribersChanged += subscriber.OnEvent;
+        subscribersChangeDetector.EntitiesChanged += subscriber.OnEvent;
     }
 
     [Test]
@@ -54,8 +54,8 @@ public class SubscribersChangeDetectorTests
 
         // Assert
         Assert.That(subscriber!.EventArgs?.DifferenceCount, Is.EqualTo(1));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.Count(), Is.EqualTo(1));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.First().Id, Is.EqualTo(77));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.Count(), Is.EqualTo(1));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.First().Id, Is.EqualTo(77));
     }
 
     [Test]
@@ -70,9 +70,9 @@ public class SubscribersChangeDetectorTests
 
         // Assert
         Assert.That(subscriber!.EventArgs?.DifferenceCount, Is.EqualTo(2));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.Count(), Is.EqualTo(2));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.First().Id, Is.EqualTo(88));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.Last().Id, Is.EqualTo(99));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.Count(), Is.EqualTo(2));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.First().Id, Is.EqualTo(88));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.Last().Id, Is.EqualTo(99));
     }
 
     [Test]
@@ -87,8 +87,8 @@ public class SubscribersChangeDetectorTests
 
         // Assert
         Assert.That(subscriber!.EventArgs?.DifferenceCount, Is.EqualTo(-1));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.Count(), Is.EqualTo(1));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.First().Id, Is.EqualTo(77));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.Count(), Is.EqualTo(1));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.First().Id, Is.EqualTo(77));
     }
 
     [Test]
@@ -103,14 +103,15 @@ public class SubscribersChangeDetectorTests
 
         // Assert
         Assert.That(subscriber!.EventArgs?.DifferenceCount, Is.EqualTo(-2));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.Count(), Is.EqualTo(2));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.First().Id, Is.EqualTo(55));
-        Assert.That(subscriber!.EventArgs?.MemberDifference.Last().Id, Is.EqualTo(77));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.Count(), Is.EqualTo(2));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.First().Id, Is.EqualTo(55));
+        Assert.That(subscriber!.EventArgs?.EntitiesDifference.Last().Id, Is.EqualTo(77));
     }
 }
 
 internal sealed class ProcessorSubscriber
 {
-    public SubscribersChangedEventArgs? EventArgs { get; private set; }
-    public async Task OnEvent(object? sender, SubscribersChangedEventArgs e) => await Task.Run(() => EventArgs = e);
+    public EntitiesChangedEventArgs<ChannelMember>? EventArgs { get; private set; }
+    public async Task OnEvent(object? sender, EntitiesChangedEventArgs<ChannelMember> e) => 
+        await Task.Run(() => EventArgs = e);
 }

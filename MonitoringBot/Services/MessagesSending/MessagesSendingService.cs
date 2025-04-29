@@ -1,6 +1,4 @@
-﻿using MonitoringBot.Domain.Events;
-using MonitoringBot.Infrastructure.Extensions;
-using MonitoringBot.Presentation;
+﻿using MonitoringBot.Infrastructure.Extensions;
 
 using Serilog;
 
@@ -9,11 +7,19 @@ using Telegram.BotAPI.AvailableMethods;
 
 namespace MonitoringBot.Services.MessagesSending;
 
-public class MessagesSendingService(
-    TelegramBotClient telegramBotClient,
-    MonitoringPresentation monitoringPresentation,
-    List<long> botUsers) // TODO: в будущем получать юзеров бота из репозитория, так нельзя
+public class MessagesSendingService // TODO: в будущем получать юзеров бота из репозитория, так нельзя
 {
+    public MessagesSendingService(
+        TelegramBotClient telegramBotClient,
+        List<long> botUsers)
+    {
+        this.telegramBotClient = telegramBotClient;
+        this.botUsers = botUsers;
+    }
+
+    protected TelegramBotClient telegramBotClient;
+    protected List<long> botUsers;
+
     private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
     public async Task TrySendMessageForAllAsync(List<long> chatIdsCollection, string? message)
     {
@@ -40,20 +46,20 @@ public class MessagesSendingService(
         }
     }
 
-    public async Task OnSubscribersChanged(object? sender, SubscribersChangedEventArgs e)
-    {
-        var resultingMessage = monitoringPresentation.FormatLeftOrJoinedUsers(
-            e.DifferenceCount,
-            e.MemberDifference);
+    //public async Task OnSubscribersChanged(object? sender, EntitiesChangedEventArgs<ChannelMember> e)
+    //{
+    //    var resultingMessage = monitoringPresentation.FormatLeftOrJoinedUsers(
+    //        e.DifferenceCount,
+    //        e.MemberDifference);
 
-        if (e.DifferenceCount != 0)
-        {
-            await TrySendMessageForAllAsync(botUsers, resultingMessage);
-            Log.Information($"Обработано изменение количества участников на {e.DifferenceCount}");
-        }
-        else
-        {
-            Log.Information($"Ничего не происходить {DateTime.Now}");
-        }
-    }
+    //    if (e.DifferenceCount != 0)
+    //    {
+    //        await TrySendMessageForAllAsync(botUsers, resultingMessage);
+    //        Log.Information($"Обработано изменение количества участников на {e.DifferenceCount}");
+    //    }
+    //    else
+    //    {
+    //        Log.Information($"Ничего не происходить {DateTime.Now}");
+    //    }
+    //}
 }
