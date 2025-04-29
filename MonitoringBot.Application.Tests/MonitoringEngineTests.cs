@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MonitoringBot.Application.Services;
+using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure;
 using MonitoringBot.Infrastructure.Persistence;
 
@@ -15,10 +18,20 @@ public class MonitoringEngineTests
     private UsersRepositoryInMemoryImplementation? usersRepository;
     private SubscribersChangeProcessor? monitoringEngine;
     private MonitoringBotDbContextBase? dbContext;
+    private List<ChannelMember>? allChannelMembers;
+    private Mock<ISubscribersChangeDetector>? subscribersChangeDetectorMock;
 
     [SetUp]
     public void SetUp()
     {
+        allChannelMembers =
+        [
+            new(55, "test1", false, "test1", "test1", "79999998888", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)),
+            new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
+            new(88, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
+            new(99, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
+        ];
+
         var options = new DbContextOptionsBuilder<MonitoringBotDbContextInMemory>()
             .UseInMemoryDatabase("InMemoryDb")
             .Options;
@@ -26,36 +39,34 @@ public class MonitoringEngineTests
 
         usersRepository = new UsersRepositoryInMemoryImplementation(dbContext);
         monitoringEngine = new SubscribersChangeProcessor(usersRepository);
+
+        subscribersChangeDetectorMock = new Mock<ISubscribersChangeDetector>();
+        subscribersChangeDetectorMock.Object.SubscribersChanged += monitoringEngine!.OnSubscribersChanged;
     }
 
-    //[Test]
-    //public async Task BasicAddition_Success()
-    //{
-    //    // Arrange
-    //    var existingUsers = new List<ChannelMember>() { new ChannelMember(55, "test1", false, "test1", "test1", "79999998888",
-    //        new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)) };
-        
-    //    await usersRepository!.AddRange(existingUsers);
+    [Test]
+    public async Task BasicAddition_Success()
+    {
+        // Arrange
+        await usersRepository!.Add(allChannelMembers![0]);
 
-    //    var newUsers = new List<ChannelMember>()
-    //    {
-    //        new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
-    //    };
+        var eventArgs = new SubscribersChangedEventArgs(
+            differenceCount: 1,
+            memberDifference:[ allChannelMembers![1] ]);
 
-    //    var incommingUsers = new List<ChannelMember>()
-    //    {
-    //        existingUsers[0],
-    //        newUsers[0]
-    //    };
+        // Act
+        await subscribersChangeDetectorMock!.RaiseAsync(
+            d => d.SubscribersChanged += null!,
+            subscribersChangeDetectorMock.Object,
+            eventArgs);
 
-    //    await monitoringEngine!.MonitoringStep(incommingUsers);
+        // Assert
+        var databaseMembers = dbContext!.ChannelMembers.ToList();
 
-    //    Assert.That(monitoringEngine.CurrentStepDifferenceCount, Is.EqualTo(1));
-    //    Assert.That(monitoringEngine.CurrentStepMemberDifference.Count(), Is.EqualTo(1));
-    //    Assert.That(monitoringEngine.CurrentStepMemberDifference.First().Id, Is.EqualTo(77));
-
-    //    Assert.That(dbContext!.ChannelMembers.Count(), Is.EqualTo(2));
-    //}
+        Assert.That(databaseMembers.Count, Is.EqualTo(2));
+        Assert.That(databaseMembers[0].Id, Is.EqualTo(allChannelMembers![0].Id));
+        Assert.That(databaseMembers[1].Id, Is.EqualTo(allChannelMembers![1].Id));
+    }
 
     //[Test]
     //public async Task RangeAddition_Success()

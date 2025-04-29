@@ -1,19 +1,11 @@
-﻿using MonitoringBot.Domain.Entities;
+﻿using MonitoringBot.Domain.Abstractions;
+using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
 
 namespace MonitoringBot.Domain.Services;
 
-public class SubscribersChangeDetector
+public class SubscribersChangeDetector : ISubscribersChangeDetector
 {
-    public SubscribersChangeDetector()
-    {
-        //CurrentStepDifferenceCount = 0;
-        //CurrentStepMemberDifference = [];
-    }
-
-    //public long CurrentStepDifferenceCount { get; private set; }
-    //public IEnumerable<ChannelMember> CurrentStepMemberDifference { get; private set; }
-
     public event Func<object?, SubscribersChangedEventArgs, Task>? SubscribersChanged;
 
     private List<ChannelMember> UsersDifference(
@@ -33,9 +25,7 @@ public class SubscribersChangeDetector
         IEnumerable<ChannelMember> usersCollectionFromRepository)
     {
         var currentStepDifferenceCount = UsersDifferenceCount(usersCollectionFromApi, usersCollectionFromRepository);
-        //CurrentStepMemberDifference = currentStepDifferenceCount;
         var currentStepMemberDifference = UsersDifference(usersCollectionFromApi, usersCollectionFromRepository);
-        //CurrentStepMemberDifference = usersDifference;
 
         if (currentStepDifferenceCount is not 0)
             await OnSubscribersChanged(new SubscribersChangedEventArgs(currentStepDifferenceCount, currentStepMemberDifference));
