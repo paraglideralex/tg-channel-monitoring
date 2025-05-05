@@ -1,5 +1,7 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure.Diagnostics;
+using MonitoringBot.Infrastructure.Services.FaultSafety;
+using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
 using Serilog;
@@ -12,11 +14,46 @@ using Channel = TL.Channel;
 
 public class TelegramChannelService : TelegramApiServiceBase
 {
-
     private const int delayBetweenParticipantsRequestsMilliseconds = 1050;
+    private Channel? channel;
 
-    public TelegramChannelService(TelegramConfig config, string? channelReference): base(config, channelReference)
+    public TelegramChannelService(TelegramConfig config, string? channelReference, RetryServiceBase retryService)
+        : base(config, channelReference, retryService)
     {
+    }
+
+    private async Task<bool> TryInitializeChannelAsync()
+    {
+        var channel = await TryGetChannelByReferenceAsync(channelReference);
+        if (channel is null)
+        {
+            Log.Error($"Не удалось найти доступный канал со ссылкой '{channelReference}'");
+            return false;
+        }
+
+        else
+        {
+            this.channel = channel;
+            State.IsInitialized = true;
+            return true;
+        }
+    }
+
+    private async Task<Channel?> TryGetChannelByReferenceAsync(string channelReference)
+    {
+        Messages_Dialogs? dialogs = await TryGetAllDialogsAsync();
+
+        if (dialogs is null)
+        {
+            Log.Error("Не найдено ни одного диалога.");
+            return null;
+        }
+
+        foreach (var peer in dialogs.chats.Values)
+            if (peer is Channel channel && channel.IsChannel && channel.MainUsername == channelReference)
+                return channel;
+
+        return null;
     }
 
     private async Task<Messages_Dialogs?> TryGetAllDialogsAsync()
@@ -110,45 +147,58 @@ public class TelegramChannelService : TelegramApiServiceBase
             Helpers.Log(0, $"GetParticipants({(filter as ChannelParticipantsSearch)?.q}) returned {ccp.count}/{maxCount}.\tAccumulated count: {participants.Count}");
             if (recurse != null && (ccp.count < maxCount - 100 || ccp.count == 200 || ccp.count == 1000))
             {
-                foreach (var c in alphabet)
+                if (alphabet is not null)
                 {
-                    await GetWithFilter(recurse(filter, c), recurse, c == 'А' ? alphabet : alphabet2);
+                    foreach (var c in alphabet)
+                    {
+                        await GetWithFilter(recurse(filter, c), recurse, c == 'А' ? alphabet : alphabet2);
+                    }
                 }
             }
         }
     }
 
+    public override async Task<bool> InitializeChannelAsync()
+    {
+        var result = await retryService.ExecuteRetryAsync(
+            action: TryInitializeChannelAsync,
+            callerName: nameof(TryInitializeChannelAsync),
+            maxRetries: 5,
+            secondsInitialWait: 20,
+            delayIncreaseType: DelayIncreaseType.Exponential);
+
+        return result;
+    }
+
     public override async Task<List<ChannelMember>?> GetChannelMembersAsync()
     {
-        List<ChannelMember> members = new();
+        if (channel is null)
+        {
+            Log.Error($"Не найдена ссылка на запрашиваемый канал '{channelReference}', " +
+                $"пользователи не будут получены. Возможно, стоит инициализировать сервис '{GetType()}'");
 
-        // TODO все диалоги и конкретный чат с каналом получать один раз при инициализации
-        Messages_Dialogs? dialogs = await TryGetAllDialogsAsync();
+            return null;
+        }
 
-        if (dialogs is null)
+        List<ChannelMember> members = [];
+
+        using var timer = new ExecutionTimer(
+            "Безопасный поиск всех подписчиков",
+            t => State.LastSearchParicipantsDurationSeconds = t.TotalSeconds);
+
+        var participants = await TryGetChannelMembersAsync(channel);
+
+        if (participants is null)
             return null;
 
-        foreach (var peer in dialogs.chats.Values)
-        {
-            if (peer is Channel channel && channel.IsChannel && channel.MainUsername == channelReference)
-            {
-                using var timer = new ExecutionTimer(
-                    "Безопасный поиск всех подписчиков",
-                    t => LastSearchParicipantsDurationSeconds = t.TotalSeconds);
+        var result = participants.users.Values;
 
-                var participants = await TryGetChannelMembersAsync(channel);
+        foreach (var user in result)
+            members.Add(ToChannelMember(user));
 
-                if (participants is null)
-                    return null;
+        State.LastSearchParticipantsTimeStamp = DateTime.Now;
+        Log.Debug($"Найдено {result.Count} участников канала");
 
-                var result = participants.users.Values;
-
-                foreach (var user in result)
-                    members.Add(ToChannelMember(user));
-
-                Log.Debug($"Найдено {result.Count} участников канала");
-            }
-        }
         return members;
     }
 

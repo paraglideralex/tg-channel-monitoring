@@ -1,5 +1,4 @@
-﻿using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
-
+﻿using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 using Serilog;
 
 using WTelegram;

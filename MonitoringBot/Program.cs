@@ -1,12 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using MonitoringBot;
-using MonitoringBot.Application;
 using MonitoringBot.Application.Queries;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.Services.FaultSafety;
+using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 using MonitoringBot.Presentation;
 using MonitoringBot.Services.MessagesSending;
@@ -31,7 +32,10 @@ var config = new TelegramConfig(
     settingsBuilder.TelegramApiSettings.ApiHash,
     settingsBuilder.TelegramApiSettings.PhoneNumber);
 
-var telegramService = new TelegramChannelService(config, settingsBuilder.TelegramApiSettings.ChannelReferenceLink);
+var retryService = new RetryService();
+
+var telegramService = new TelegramChannelService(config, 
+    settingsBuilder.TelegramApiSettings.ChannelReferenceLink, retryService);
 
 var backgroundUserFetchService = new FetchUsersBackgroundService(
     telegramService,

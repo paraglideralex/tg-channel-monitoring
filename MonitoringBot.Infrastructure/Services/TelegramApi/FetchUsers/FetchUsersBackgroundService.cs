@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Domain.Entities;
+using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 
 using Serilog;
 
@@ -6,7 +7,7 @@ namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
 public class FetchUsersBackgroundService : IDisposable
 {
-    private volatile List<ChannelMember> currentUsers = new();
+    private volatile List<ChannelMember> currentUsers = [];
     private readonly TimeSpan updateInterval;
     private readonly TelegramApiServiceBase telegramService;
     private CancellationTokenSource cancellationTokenSource = new();
@@ -17,12 +18,14 @@ public class FetchUsersBackgroundService : IDisposable
         this.updateInterval = updateInterval;
     }
 
+    public async Task<bool> InitializeServiceAsync() => await telegramService.InitializeChannelAsync();
+
     public void Start() => _ = Task.Run(() => RunFetchLoopAsync(cancellationTokenSource.Token));
 
     public void Stop() => cancellationTokenSource.Cancel();
 
     public List<ChannelMember> GetSnapshot() => currentUsers;
-    public double GetFetchDuration() => telegramService.LastSearchParicipantsDurationSeconds;
+    public TelegramServiceState GetState() => telegramService.State;
 
     public async Task LoginAsync() => await telegramService.LoginAsync();
 
@@ -35,14 +38,12 @@ public class FetchUsersBackgroundService : IDisposable
                 var users = await telegramService.GetChannelMembersAsync();
 
                 if (users is null)
-                {
                     Log.Error("Импорт подписчиков канала не выполнен, подписчики в этот раз не получены из телеграм-канала.");
-                    return;
+                else
+                {
+                    currentUsers = users;
+                    Log.Debug($"Успешно загружен новый снапшот из {users.Count} участников канала.");
                 }
-
-                currentUsers = users;
-
-                Log.Debug($"Успешно загружен новый снапшот из {users.Count} участников канала.");
             }
             catch (Exception ex)
             {

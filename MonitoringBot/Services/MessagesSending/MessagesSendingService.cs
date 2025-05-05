@@ -45,21 +45,4 @@ public class MessagesSendingService // TODO: в будущем получать 
             Log.Error($"Сообщение в ответ на запрос не было отправлено id: {id}, message:{message.TakeAndFormatFirst(300)}");
         }
     }
-
-    //public async Task OnSubscribersChanged(object? sender, EntitiesChangedEventArgs<ChannelMember> e)
-    //{
-    //    var resultingMessage = monitoringPresentation.FormatLeftOrJoinedUsers(
-    //        e.DifferenceCount,
-    //        e.MemberDifference);
-
-    //    if (e.DifferenceCount != 0)
-    //    {
-    //        await TrySendMessageForAllAsync(botUsers, resultingMessage);
-    //        Log.Information($"Обработано изменение количества участников на {e.DifferenceCount}");
-    //    }
-    //    else
-    //    {
-    //        Log.Information($"Ничего не происходить {DateTime.Now}");
-    //    }
-    //}
 }

@@ -1,4 +1,4 @@
-﻿namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
+﻿namespace MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 
 public record TelegramConfig(
     string ApiId,

@@ -39,7 +39,6 @@ public class MonitoringBotRunner
         this.checkPeriodSeconds = checkPeriodSeconds;
         this.channelReference = channelReference;
     }
-    //private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
 
     private readonly EntitiesChangeDetector<ChannelMember> subscriberChangeDetector;
     private readonly GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
@@ -54,7 +53,7 @@ public class MonitoringBotRunner
 
     private int checkPeriodSeconds;
     private DateTime basicTimeStamp;
-    private IEnumerable<Update> updates;
+    private IEnumerable<Update>? updates;
     private DateTime beginWorkingFrom;
     
     private async Task ProcessMonitoringByPeriodAsync()
@@ -79,53 +78,11 @@ public class MonitoringBotRunner
 
         await subscriberChangeDetector.ExecuteMonitoring(apiUsers, databaseUsers);
         // дальше сервисы-подписчики делают своё дело - пишут в базу и отправляют сообщения
-
-        //await monitoringEngine.MonitoringStep(users);
-
-        //var resultingMessage = monitoringPresentation.FormatLeftOrJoinedUsers(
-        //    monitoringEngine.CurrentStepDifferenceCount,
-        //    monitoringEngine.CurrentStepMemberDifference);
-
-        //if (monitoringEngine.CurrentStepDifferenceCount != 0)
-        //{
-        //    await TrySendMessageForAllAsync(chatIdCollection, resultingMessage);
-        //    Log.Information($"Обработано изменение количества участников на {monitoringEngine.CurrentStepDifferenceCount}");
-        //}
-        //else
-        //{
-        //    Log.Information($"Ничего не происходить {DateTime.Now}");
-        //}
-        
     }
-
-    //private async Task TrySendMessageForAllAsync(List<long> chatIdsCollection, string? message)
-    //{
-    //    var tasks = new List<Task>();
-    //    foreach (var id in chatIdCollection)
-    //        tasks.Add(TrySendMessageAsync(id, message));
-
-    //    await Task.WhenAll(tasks);
-    //}
-
-    //private async Task TrySendMessageAsync(long id, string? message)
-    //{
-    //    try
-    //    {
-    //        await telegramBotClient.SendMessageAsync(
-    //            id, 
-    //            message.TakeAndFormatFirst(telegramMessageLengthLimit) ?? "Пустое сообщение",
-    //            parseMode: FormatStyles.HTML);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Console.WriteLine(ex.Message);
-    //        Log.Error($"Сообщение в ответ на запрос не было отправлено id: {id}, message:{message.TakeAndFormatFirst(300)}");
-    //    }
-    //}
 
     private async Task CheckAndProcessInputsAsync()
     {
-        if (updates.Any())
+        if (updates is not null && updates.Any())
         {
             Log.Information("Получен пользовательский ввод.");
             foreach (var update in updates)
@@ -146,9 +103,9 @@ public class MonitoringBotRunner
                     "/change_period" => "будет менять период мониторинга",
                     "/check" => await messageBuilder.CheckDiagnostics(
                                       checkPeriodSeconds, 
-                                      fetchUsersBackgroundService.GetFetchDuration(), 
                                       chatIdCollection.Count,
-                                      beginWorkingFrom),
+                                      beginWorkingFrom,
+                                      fetchUsersBackgroundService.GetState()),
                     _ => null
                 };
 
@@ -197,6 +154,15 @@ public class MonitoringBotRunner
 
         updates = await telegramBotClient.GetUpdatesAsync();
         await fetchUsersBackgroundService.LoginAsync();
+        bool apiServiceInitializationSuccess = await fetchUsersBackgroundService.InitializeServiceAsync();
+        if(!apiServiceInitializationSuccess)
+        {
+            var message = $"Не удалось корректно инициализировать сервис сбора подписчиков '${nameof(TelegramChannelService)}'.";
+            Log.Fatal(message);
+            await messagesSendingService.TrySendMessageForAllAsync(chatIdCollection, message);
+            return;
+        }
+
         fetchUsersBackgroundService.Start();
 
         subscriberChangeDetector.EntitiesChanged += subscribersChangeProcessor.OnSubscribersChanged;

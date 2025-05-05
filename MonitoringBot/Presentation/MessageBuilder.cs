@@ -1,6 +1,9 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure;
+using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,17 +16,20 @@ namespace MonitoringBot.Presentation;
 public class MessageBuilder(UserRepository userRepository)
 {
     public async Task<string> CheckDiagnostics(int dataUpdatePeriodSeconds, 
-        double membersCountDurationSeconds,
         int botSubscribersCount,
-        DateTime startWorkingTimeStamp)
+        DateTime startWorkingTimeStamp,
+        TelegramServiceState state)
     {
         var sb = new StringBuilder();
 
         sb.AppendLine($"Количество подписчиков: {await userRepository.CountAsync()}");
         sb.AppendLine($"Период обновления данных, секунд: {dataUpdatePeriodSeconds}");
-        sb.AppendLine($"Время подсчета подписчиков, секунд: {membersCountDurationSeconds}");
+        sb.AppendLine($"Время подсчета подписчиков, секунд: {state.LastSearchParicipantsDurationSeconds}");
         sb.AppendLine($"Количество текущих подписчиков на бота: {botSubscribersCount}");
         sb.AppendLine($"Запущен: {startWorkingTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
+        sb.AppendLine($"Статус инициализации: {state.IsInitialized}");
+        sb.AppendLine($"Продолжительность работы: '{(DateTime.Now - startWorkingTimeStamp).FormattedDuration()}'");
+        sb.AppendLine($"Последний успешный поиск подписчиков: {state.LastSearchParticipantsTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
         sb.AppendLine($"Инфа от: {DateTime.Now.ToString("dd.MM.yyyy HH:mm")}");
         return sb.ToString();
     }

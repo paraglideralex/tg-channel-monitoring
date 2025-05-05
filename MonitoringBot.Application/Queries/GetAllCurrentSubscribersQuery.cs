@@ -2,6 +2,7 @@
 using MonitoringBot.Infrastructure;
 
 namespace MonitoringBot.Application.Queries;
+
 public sealed class GetAllCurrentSubscribersQuery(UserRepository userRepository)
 {
     public async Task<List<ChannelMember>> ExecuteAsync()

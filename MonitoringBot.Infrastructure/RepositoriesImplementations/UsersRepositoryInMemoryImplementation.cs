@@ -97,8 +97,8 @@ public class UsersRepositoryInMemoryImplementation : UserRepository
         return await taken.Select(t => t.ToDomain()).ToListAsync();
     }
 
-    public override Task<List<ChannelMember>> All()
+    public override async Task<List<ChannelMember>> All()
     {
-        throw new NotImplementedException();
+        return context.ChannelMembers.AsEnumerable().Select(u => u.ToDomain()).ToList();
     }
 }
