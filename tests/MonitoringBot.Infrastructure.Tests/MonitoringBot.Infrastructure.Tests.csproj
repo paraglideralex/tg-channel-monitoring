@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MonitoringBot.Domain\MonitoringBot.Domain.csproj" />
+    <ProjectReference Include="..\..\source\MonitoringBot.Infrastructure\MonitoringBot.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
