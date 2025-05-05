@@ -16,16 +16,16 @@ public abstract class EntitiesChangeMessagingService<TEntity> : MessagesSendingS
 
     public async Task OnSubscribersChanged(object? sender, EntitiesChangedEventArgs<TEntity> e)
     {
-        var resultingMessage = CreateMessage(e);
-
         if (e.DifferenceCount != 0)
         {
+            var resultingMessage = CreateMessage(e);
             await TrySendMessageForAllAsync(botUsers, resultingMessage);
             Log.Information($"Обработано изменение количества участников на {e.DifferenceCount}");
         }
         else
         {
-            Log.Information($"Ничего не происходить {DateTime.Now}");
+            Log.Information($"Количество пользователей не изменилось, " +
+                $"{nameof(EntitiesChangeMessagingService<TEntity>)} ничего не делает.");
         }
     }
 }
