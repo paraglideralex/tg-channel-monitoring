@@ -1,4 +1,5 @@
-﻿using MonitoringBot.Application.Services;
+﻿using MonitoringBot.Application.Commands;
+using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
@@ -8,7 +9,7 @@ using Moq;
 
 using NUnit.Framework;
 
-namespace MonitoringBot.Application.Tests;
+namespace MonitoringBot.Application.Tests.Services;
 
 public class SubscribersChangeProcessorTests
 {
@@ -16,6 +17,8 @@ public class SubscribersChangeProcessorTests
     private SubscribersChangeProcessor? monitoringEngine;
     private List<ChannelMember>? allChannelMembers;
     private Mock<IEntitiesChangeDetector<ChannelMember>>? subscribersChangeDetectorMock;
+    private AddSubscribersCommand? addSubscribersCommand;
+    private DeleteSubscribersCommand? deleteSubscribersCommand;
 
     [SetUp]
     public void SetUp()
@@ -29,10 +32,14 @@ public class SubscribersChangeProcessorTests
         ];
 
         usersRepositoryMock = new Mock<UserRepository>();
-        monitoringEngine = new SubscribersChangeProcessor(usersRepositoryMock.Object);
+        addSubscribersCommand = new AddSubscribersCommand(usersRepositoryMock.Object);
+        deleteSubscribersCommand = new DeleteSubscribersCommand(usersRepositoryMock.Object);
+
+        monitoringEngine = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
 
         subscribersChangeDetectorMock = new Mock<IEntitiesChangeDetector<ChannelMember>>();
-        subscribersChangeDetectorMock.Object.EntitiesChanged += monitoringEngine!.OnSubscribersChanged;
+        subscribersChangeDetectorMock.Object.EntitiesJoined += monitoringEngine!.OnSubscribersJoined;
+        subscribersChangeDetectorMock.Object.EntitiesLeft += monitoringEngine!.OnSubscribersLeft;
     }
 
     [Test]
@@ -45,7 +52,7 @@ public class SubscribersChangeProcessorTests
 
         // Act
         await subscribersChangeDetectorMock!.RaiseAsync(
-            d => d.EntitiesChanged += null!,
+            d => d.EntitiesJoined += null!,
             subscribersChangeDetectorMock.Object,
             eventArgs);
 
@@ -67,7 +74,7 @@ public class SubscribersChangeProcessorTests
 
         // Act
         await subscribersChangeDetectorMock!.RaiseAsync(
-            d => d.EntitiesChanged += null!,
+            d => d.EntitiesLeft += null!,
             subscribersChangeDetectorMock.Object,
             eventArgs);
 

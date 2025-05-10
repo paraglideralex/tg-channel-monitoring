@@ -1,18 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using MonitoringBot.Domain.Entities;
-using MonitoringBot.Infrastructure;
 using MonitoringBot.Infrastructure.Persistence;
 
-public class UsersRepositoryInMemoryImplementation : UserRepository
+namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
+
+public class UsersRepositoryInMemoryImplementation(
+    MonitoringBotDbContextBase context) : UserRepository
 {
-    private readonly MonitoringBotDbContextBase context;
-
-    public UsersRepositoryInMemoryImplementation(MonitoringBotDbContextBase context)
-    {
-        this.context = context;
-    }
-
     public override async Task Add(ChannelMember user)
     {
         var exists = await context.ChannelMembers.AnyAsync(u => u.Id == user.Id);
@@ -83,13 +78,6 @@ public class UsersRepositoryInMemoryImplementation : UserRepository
         return Task.FromResult(filtered);
     }
 
-    public override async Task<List<ChannelMember>> Difference(IEnumerable<ChannelMember> users)
-    {
-        var currentUsers = context.ChannelMembers.AsEnumerable().Select(u => u.ToDomain()).ToList();
-        var difference = currentUsers.SymmetricDifference(users);
-        return difference.ToList();
-    }
-
     public override async Task<List<ChannelMember>> TakeLast(int count = 5)
     {
         var ordered = context.ChannelMembers.OrderByDescending(m => m.JoinedAt);
@@ -99,6 +87,6 @@ public class UsersRepositoryInMemoryImplementation : UserRepository
 
     public override async Task<List<ChannelMember>> All()
     {
-        return context.ChannelMembers.AsEnumerable().Select(u => u.ToDomain()).ToList();
+        return await context.ChannelMembers.Select(u => u.ToDomain()).ToListAsync();
     }
 }

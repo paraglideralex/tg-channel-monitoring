@@ -1,6 +1,6 @@
-﻿using MonitoringBot.Infrastructure;
+﻿namespace MonitoringBot.Domain.Extensions;
 
-public static class EnumerableExtensions
+public static class DomainEnumerableExtensions
 {
     public static IEnumerable<T> SymmetricDifference<T>(this IEnumerable<T> first, IEnumerable<T> second)
     {

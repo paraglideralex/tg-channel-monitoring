@@ -1,32 +1,20 @@
 ﻿using MonitoringBot.Domain.Entities;
-using MonitoringBot.Infrastructure;
 
 namespace MonitoringBot.Presentation;
 
 public class MonitoringPresentation(MessageBuilder messageBuilder)
 {
-    public string? FormatLeftOrJoinedUsers(long currentStepDifferenceCount, IEnumerable<ChannelMember> usersDifference)
+    public string FormatJoinedUsers(IEnumerable<ChannelMember> usersDifference)
     {
-        string? message = "";
-        if (currentStepDifferenceCount > 0)
-        {
-            if (usersDifference != null)
-            {
-                message = "Ура, новые подпищщики!🍾🎊🎈\r\n\r\n";
-                message += FormatOneOrManyMembers(usersDifference);
-                return message;
-            }
-        }
-        if (currentStepDifferenceCount < 0)
-        {
-            if (usersDifference != null)
-            {
-                message = "Неееет! От нас свалили!👎💩🐀\r\n\r\n";
-                message += FormatOneOrManyMembers(usersDifference);
-                return message;
+        string message = "Ура, новые подпищщики!🍾🎊🎈\r\n\r\n";
+        message += FormatOneOrManyMembers(usersDifference);
+        return message;
+    }
 
-            }
-        }
+    public string FormatLeftUsers(IEnumerable<ChannelMember> usersDifference)
+    {
+        string message = "Неееет! От нас свалили!👎💩🐀\r\n\r\n";
+        message += FormatOneOrManyMembers(usersDifference);
         return message;
     }
 

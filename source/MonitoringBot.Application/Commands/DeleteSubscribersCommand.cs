@@ -1,15 +1,16 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure;
+using MonitoringBot.Infrastructure.Extensions;
 
 namespace MonitoringBot.Application.Commands;
 
-internal class DeleteSubscribersCommand(UserRepository userRepository)
+public sealed class DeleteSubscribersCommand(UserRepository userRepository)
     : BaseCommand<IEnumerable<ChannelMember>>
 {
     protected override bool Validate(IEnumerable<ChannelMember> channelMembers)
     {
         var basic = base.Validate(channelMembers);
-        bool eachNotNull = channelMembers.Any(x => x != null);
+        bool eachNotNull = channelMembers.AllNotNull();
         return basic && eachNotNull;
     }
 

@@ -1,24 +1,32 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
+using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Services;
-using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
-using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.RepositoriesImplementations;
+using MonitoringBot.Presentation;
+using MonitoringBot.Services.MessagesSending;
 
 using Moq;
 
 using NUnit.Framework;
+
+using Telegram.BotAPI;
+using Telegram.BotAPI.AvailableMethods;
 
 namespace MonitoringBot.IntegrationTests;
 
 public class ChangeDetectorSubscribersTests
 {
     private UsersRepositoryInMemoryImplementation? usersRepository;
-    private SubscribersChangeProcessor? monitoringEngine;
+    private SubscribersChangeProcessor? subscribersChangeProcessor;
     private MonitoringBotDbContextBase? dbContext;
     private List<ChannelMember>? allChannelMembers;
-    private Mock<IEntitiesChangeDetector<ChannelMember>>? subscribersChangeDetectorMock;
+    private EntitiesChangeDetector<ChannelMember>? subscribersChangeDetector;
+    private AddSubscribersCommand? addSubscribersCommand;
+    private DeleteSubscribersCommand? deleteSubscribersCommand;
 
     [SetUp]
     public void SetUp()
@@ -37,57 +45,78 @@ public class ChangeDetectorSubscribersTests
         dbContext = new MonitoringBotDbContextInMemory(options);
 
         usersRepository = new UsersRepositoryInMemoryImplementation(dbContext);
-        monitoringEngine = new SubscribersChangeProcessor(usersRepository);
 
-        subscribersChangeDetectorMock = new Mock<IEntitiesChangeDetector<ChannelMember>>();
-        subscribersChangeDetectorMock.Object.EntitiesChanged += monitoringEngine!.OnSubscribersChanged;
+        addSubscribersCommand = new AddSubscribersCommand(usersRepository);
+        deleteSubscribersCommand = new DeleteSubscribersCommand(usersRepository);
+        subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
+        subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
+
+        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember>();
+        subscribersChangeDetector.EntitiesJoined += subscribersChangeProcessor!.OnSubscribersJoined;
+        subscribersChangeDetector.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersLeft;
     }
 
     [Test]
     public async Task BasicAddition_Success()
     {
         // Arrange
+        var fromApi = new List<ChannelMember> { allChannelMembers![0], allChannelMembers[1] };
         await usersRepository!.Add(allChannelMembers![0]);
 
-        var eventArgs = new EntitiesCollectionChangedEventArgs<ChannelMember>(
-            differenceCount: 1,
-            entitiesDifference: [allChannelMembers![1]]);
-
         // Act
-        await subscribersChangeDetectorMock!.RaiseAsync(
-            d => d.EntitiesChanged += null!,
-            subscribersChangeDetectorMock.Object,
-            eventArgs);
+        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, await usersRepository.All());
+
 
         // Assert
-        var databaseMembers = dbContext!.ChannelMembers.ToList();
-
-        Assert.That(databaseMembers.Count, Is.EqualTo(2));
-        Assert.That(databaseMembers[0].Id, Is.EqualTo(allChannelMembers![0].Id));
-        Assert.That(databaseMembers[1].Id, Is.EqualTo(allChannelMembers![1].Id));
+        var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
+        Assert.That(databaseMembers, Is.EquivalentTo(fromApi));
     }
 
     [Test]
-    public async Task RangeAddition_Success()
+    public async Task Deletion_Success()
     {
         // Arrange
+        var fromApi = new List<ChannelMember> { allChannelMembers![0] };
         await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
 
-        var eventArgs = new EntitiesCollectionChangedEventArgs<ChannelMember>(
-            differenceCount: 2,
-            entitiesDifference: [allChannelMembers![2], allChannelMembers[3]]);
-
         // Act
-        await subscribersChangeDetectorMock!.RaiseAsync(
-            d => d.EntitiesChanged += null!,
-            subscribersChangeDetectorMock.Object,
-            eventArgs);
+        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, await usersRepository.All());
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.ToList();
 
-        Assert.That(databaseMembers.Count, Is.EqualTo(4));
-        for (int i = 0; i < databaseMembers.Count; i++)
-            Assert.That(databaseMembers[i].Id, Is.EqualTo(allChannelMembers![i].Id));
+        Assert.That(databaseMembers.Count, Is.EqualTo(1));
+        Assert.That(databaseMembers[0].Id, Is.EqualTo(allChannelMembers![0].Id));
+    }
+
+    [Test]
+    public async Task Combined_Success()
+    {
+        // Arrange
+        var fromApi = new List<ChannelMember> { allChannelMembers![1], allChannelMembers![2] };
+        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
+
+        // Act
+        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, await usersRepository.All());
+
+        // Assert
+        var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
+        Assert.That(databaseMembers, Is.EquivalentTo(fromApi));
+    }
+
+    [Test]
+    public async Task NothingHappens()
+    {
+        // Arrange
+        var fromApi = new List<ChannelMember> { allChannelMembers![1], allChannelMembers![2] };
+        await usersRepository!.AddRange([allChannelMembers![1], allChannelMembers[2]]);
+
+        // Act
+        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, await usersRepository.All());
+
+        // Assert
+        var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
+
+        Assert.That(databaseMembers, Is.EquivalentTo(fromApi));
     }
 }

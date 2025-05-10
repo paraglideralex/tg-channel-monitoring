@@ -1,11 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using MonitoringBot;
+using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Queries;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.RepositoriesImplementations;
 using MonitoringBot.Infrastructure.Services.FaultSafety;
 using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
@@ -47,7 +49,10 @@ var messageBuilder = new MessageBuilder(userRepository);
 var monitoringEngine = new EntitiesChangeDetector<ChannelMember>();
 var getAllQuery = new GetAllCurrentSubscribersQuery(userRepository);
 
-var monitoringProcessor = new SubscribersChangeProcessor(userRepository);
+var addUserCommand = new AddSubscribersCommand(userRepository);
+var deleteUserCommand = new DeleteSubscribersCommand(userRepository);
+
+var monitoringProcessor = new SubscribersChangeProcessor(addUserCommand, deleteUserCommand);
 var monitoringPresentation = new MonitoringPresentation(messageBuilder);
 
 var subscribersChangeMessagingService = new SubscribersChangeMessageService(

@@ -21,7 +21,5 @@ public abstract class UserRepository
 
     public abstract Task<List<ChannelMember>> FindByIds(IEnumerable<ChannelMember> usersCollection, IEnumerable<long> identities);
 
-    public abstract Task<List<ChannelMember>> Difference(IEnumerable<ChannelMember> users);
-
     public abstract Task<List<ChannelMember>> TakeLast(int count = 5);
 }

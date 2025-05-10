@@ -76,8 +76,7 @@ public class MonitoringBotRunner
 
         var databaseUsers = await getAllCurrentSubscribersQuery.ExecuteAsync();
 
-        await subscriberChangeDetector.ExecuteMonitoring(apiUsers, databaseUsers);
-        // дальше сервисы-подписчики делают своё дело - пишут в базу и отправляют сообщения
+        await subscriberChangeDetector.ExecuteMonitoringAsync(apiUsers, databaseUsers);
     }
 
     private async Task CheckAndProcessInputsAsync()
@@ -165,8 +164,11 @@ public class MonitoringBotRunner
 
         fetchUsersBackgroundService.Start();
 
-        subscriberChangeDetector.EntitiesChanged += subscribersChangeProcessor.OnSubscribersChanged;
-        subscriberChangeDetector.EntitiesChanged += messagesSendingService.OnSubscribersChanged;
+        subscriberChangeDetector.EntitiesJoined += subscribersChangeProcessor.OnSubscribersJoined;
+        subscriberChangeDetector.EntitiesLeft += subscribersChangeProcessor.OnSubscribersLeft;
+
+        subscriberChangeDetector.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
+        subscriberChangeDetector.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
 
         await messagesSendingService.TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");

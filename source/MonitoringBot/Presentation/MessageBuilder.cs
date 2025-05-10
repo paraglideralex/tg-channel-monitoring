@@ -4,12 +4,7 @@ using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Persistence;
 using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace MonitoringBot.Presentation;
 
