@@ -49,7 +49,7 @@ public class ChangeDetectorSubscribersTests
         // Arrange
         await usersRepository!.Add(allChannelMembers![0]);
 
-        var eventArgs = new EntitiesChangedEventArgs<ChannelMember>(
+        var eventArgs = new EntitiesCollectionChangedEventArgs<ChannelMember>(
             differenceCount: 1,
             entitiesDifference: [allChannelMembers![1]]);
 
@@ -73,7 +73,7 @@ public class ChangeDetectorSubscribersTests
         // Arrange
         await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
 
-        var eventArgs = new EntitiesChangedEventArgs<ChannelMember>(
+        var eventArgs = new EntitiesCollectionChangedEventArgs<ChannelMember>(
             differenceCount: 2,
             entitiesDifference: [allChannelMembers![2], allChannelMembers[3]]);
 

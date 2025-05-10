@@ -22,10 +22,10 @@ public class SubscribersChangeProcessorTests
     {
         allChannelMembers =
         [
-            new(55, "test1", false, "test1", "test1", "79999998888", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)),
-            new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
-            new(88, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
-            new(99, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
+            new(1, "1", false, "1", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)),
+            new(2, "2", false, "2", "2", "2", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
+            new(3, "3", false, "3", "3", "3", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
+            new(4, "4", false, "4", "4", "4", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
         ];
 
         usersRepositoryMock = new Mock<UserRepository>();
@@ -39,7 +39,7 @@ public class SubscribersChangeProcessorTests
     public async Task RangeAddition_Success()
     {
         // Arrange
-        var eventArgs = new EntitiesChangedEventArgs<ChannelMember>(
+        var eventArgs = new EntitiesCollectionChangedEventArgs<ChannelMember>(
             differenceCount: 4,
             entitiesDifference: allChannelMembers!);
 
@@ -61,7 +61,7 @@ public class SubscribersChangeProcessorTests
     public async Task RangeDeletion_Success()
     {
         // Arrange
-        var eventArgs = new EntitiesChangedEventArgs<ChannelMember>(
+        var eventArgs = new EntitiesCollectionChangedEventArgs<ChannelMember>(
             differenceCount: -4,
             entitiesDifference: allChannelMembers!);
 

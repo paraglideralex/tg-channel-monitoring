@@ -15,7 +15,7 @@ public sealed class SubscribersChangeMessageService : EntitiesChangeMessagingSer
         this.monitoringPresentation = monitoringPresentation;
     }
 
-    protected internal override string CreateMessage(EntitiesChangedEventArgs<ChannelMember> e) => 
+    protected internal override string CreateMessage(EntitiesCollectionChangedEventArgs<ChannelMember> e) => 
         monitoringPresentation!.FormatLeftOrJoinedUsers(
             e.DifferenceCount,
             e.EntitiesDifference);

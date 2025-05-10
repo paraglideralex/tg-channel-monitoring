@@ -12,9 +12,9 @@ public abstract class EntitiesChangeMessagingService<TEntity> : MessagesSendingS
     {
     }
 
-    protected internal abstract string CreateMessage(EntitiesChangedEventArgs<TEntity> e);
+    protected internal abstract string CreateMessage(EntitiesCollectionChangedEventArgs<TEntity> e);
 
-    public async Task OnSubscribersChanged(object? sender, EntitiesChangedEventArgs<TEntity> e)
+    public async Task OnSubscribersChanged(object? sender, EntitiesCollectionChangedEventArgs<TEntity> e)
     {
         if (e.DifferenceCount != 0)
         {
