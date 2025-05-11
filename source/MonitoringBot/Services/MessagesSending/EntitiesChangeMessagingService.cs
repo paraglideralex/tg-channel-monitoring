@@ -12,8 +12,8 @@ public abstract class EntitiesChangeMessagingService<TEntity> : MessagesSendingS
     {
     }
 
-    protected internal abstract string CreateLeftMessage(EntitiesCollectionChangedEventArgs<TEntity> e);
-    protected internal abstract string CreateJoinedMessage(EntitiesCollectionChangedEventArgs<TEntity> e);
+    protected abstract string CreateLeftMessage(EntitiesCollectionChangedEventArgs<TEntity> e);
+    protected abstract string CreateJoinedMessage(EntitiesCollectionChangedEventArgs<TEntity> e);
 
     public async Task OnEntitiesLeft(object? sender, EntitiesCollectionChangedEventArgs<TEntity> e)
     {
