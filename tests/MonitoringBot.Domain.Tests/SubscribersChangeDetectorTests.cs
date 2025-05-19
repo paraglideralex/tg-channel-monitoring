@@ -41,7 +41,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers[0], allChannelMembers[1] };
 
         // Act
-        var result = subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Joined, Is.Null);
@@ -56,7 +56,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers[0], allChannelMembers[1] };
 
         // Act
-        var result = subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository);
 
 
         var dese = JsonSerializer.Serialize(result.First());
@@ -80,7 +80,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = allChannelMembers;
 
         // Act
-        subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
+        subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Joined, Is.Not.Null);
@@ -100,7 +100,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers![0] };
 
         // Act
-        subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
+        subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Left, Is.Not.Null);
@@ -119,7 +119,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers![2], allChannelMembers[3] };
 
         // Act
-        subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
+        subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Left, Is.Not.Null);
@@ -139,7 +139,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers[1], allChannelMembers[2], allChannelMembers[3] };
 
         // Act
-        subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
+        subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Left, Is.Not.Null);

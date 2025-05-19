@@ -16,7 +16,7 @@ public class SubscribersChangeProcessorTests
     private Mock<UserRepository>? usersRepositoryMock;
     private SubscribersChangeProcessor? monitoringEngine;
     private List<ChannelMember>? allChannelMembers;
-    private Mock<IEntitiesChangeDetector<ChannelMember>>? subscribersChangeDetectorMock;
+    private Mock<EventsMonitoringProcessor<ChannelMember>>? subscribersChangeDetectorMock;
     private AddSubscribersCommand? addSubscribersCommand;
     private DeleteSubscribersCommand? deleteSubscribersCommand;
 
@@ -37,7 +37,7 @@ public class SubscribersChangeProcessorTests
 
         monitoringEngine = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
 
-        subscribersChangeDetectorMock = new Mock<IEntitiesChangeDetector<ChannelMember>>();
+        subscribersChangeDetectorMock = new Mock<EventsMonitoringProcessor<ChannelMember>>();
         subscribersChangeDetectorMock.Object.EntitiesJoined += monitoringEngine!.OnSubscribersJoined;
         subscribersChangeDetectorMock.Object.EntitiesLeft += monitoringEngine!.OnSubscribersLeft;
     }

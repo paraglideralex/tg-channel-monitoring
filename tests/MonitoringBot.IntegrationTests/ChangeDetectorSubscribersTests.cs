@@ -1,35 +1,32 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using MonitoringBot.Application.Commands;
+using MonitoringBot.Application.Queries;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
-using MonitoringBot.Domain.Events;
 using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Services;
-using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Persistence;
 using MonitoringBot.Infrastructure.RepositoriesImplementations;
-using MonitoringBot.Presentation;
-using MonitoringBot.Services.MessagesSending;
-
-using Moq;
 
 using NUnit.Framework;
-
-using Telegram.BotAPI;
-using Telegram.BotAPI.AvailableMethods;
 
 namespace MonitoringBot.IntegrationTests;
 
 public class ChangeDetectorSubscribersTests
 {
+    private DbContextOptions<MonitoringBotDbContextInMemory> options;
     private UsersRepositoryInMemoryImplementation? usersRepository;
+    private EventsRepositoryImplementation<ChannelMember>? eventsRepository;
     private SubscribersChangeProcessor? subscribersChangeProcessor;
     private MonitoringBotDbContextBase? dbContext;
     private List<ChannelMember>? allChannelMembers;
     private EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>? subscribersChangeDetector;
     private AddSubscribersCommand? addSubscribersCommand;
     private DeleteSubscribersCommand? deleteSubscribersCommand;
+    private GetEventsInPeriodQueryExecution<ChannelMember>? getEventsInPeriodQueryExecution;
+    private AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand;
+    private EventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor;
 
     [SetUp]
     public void SetUp()
@@ -42,12 +39,16 @@ public class ChangeDetectorSubscribersTests
             new(99, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
         ];
 
-        var options = new DbContextOptionsBuilder<MonitoringBotDbContextInMemory>()
+        options = new DbContextOptionsBuilder<MonitoringBotDbContextInMemory>()
             .UseInMemoryDatabase("InMemoryDb")
             .Options;
         dbContext = new MonitoringBotDbContextInMemory(options);
 
         usersRepository = new UsersRepositoryInMemoryImplementation(dbContext);
+        eventsRepository = new EventsRepositoryImplementation<ChannelMember> (dbContext);
+
+        getEventsInPeriodQueryExecution = new GetEventsInPeriodQueryExecution<ChannelMember>(eventsRepository);
+        addEventsCommand = new AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(eventsRepository);
 
         addSubscribersCommand = new AddSubscribersCommand(usersRepository);
         deleteSubscribersCommand = new DeleteSubscribersCommand(usersRepository);
@@ -55,8 +56,21 @@ public class ChangeDetectorSubscribersTests
         subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
 
         subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
-        //subscribersChangeDetector.EntitiesJoined += subscribersChangeProcessor!.OnSubscribersJoined;
-        //subscribersChangeDetector.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersLeft;
+        eventsMonitoringProcessor = new EventsMonitoringProcessor<ChannelMember>(getEventsInPeriodQueryExecution);
+        eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor!.OnSubscribersJoined;
+        eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersLeft;
+    }
+
+    [TearDown]
+    public async Task TearDown()
+    {
+        var members = dbContext!.ChannelMembers.ToList();
+        dbContext.ChannelMembers.RemoveRange(members);
+        await dbContext.SaveChangesAsync();
+
+        var events = dbContext!.Events.ToList();
+        dbContext.Events.RemoveRange(events);
+        await dbContext.SaveChangesAsync();
     }
 
     [Test]
@@ -67,9 +81,10 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.Add(allChannelMembers![0]);
 
         // Act
-        var result = subscribersChangeDetector!.ExecuteMonitoring(fromApi, await usersRepository.All());
-        var dese = EntityChangedEventsMapping.
-            ToEntity<EntitiesChangedDomainEventBase<ChannelMember>, ChannelMember>(result.First());
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All());
+        var addResult = await addEventsCommand.ExecuteAsync(result);
+
+        await eventsMonitoringProcessor.ExecuteMonitoringAsync();
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
@@ -84,9 +99,10 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
 
         // Act
-        var result = subscribersChangeDetector!.ExecuteMonitoring(fromApi, await usersRepository.All());
-        var dese = EntityChangedEventsMapping.
-            ToEntity<EntitiesChangedDomainEventBase<ChannelMember>, ChannelMember>(result.First());
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All());
+        var addResult = await addEventsCommand.ExecuteAsync(result);
+
+        await eventsMonitoringProcessor.ExecuteMonitoringAsync();
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.ToList();
@@ -103,7 +119,10 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
 
         // Act
-        subscribersChangeDetector!.ExecuteMonitoring(fromApi, await usersRepository.All());
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All());
+        var addResult = await addEventsCommand.ExecuteAsync(result);
+
+        await eventsMonitoringProcessor.ExecuteMonitoringAsync();
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
@@ -118,7 +137,11 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.AddRange([allChannelMembers![1], allChannelMembers[2]]);
 
         // Act
-        subscribersChangeDetector!.ExecuteMonitoring(fromApi, await usersRepository.All());
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All());
+
+        var addResult = await addEventsCommand.ExecuteAsync(result);
+
+        await eventsMonitoringProcessor.ExecuteMonitoringAsync();
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();

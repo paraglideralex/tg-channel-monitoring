@@ -10,9 +10,6 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
     where TOnJoinedEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
     where TOnLeftEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
 {
-    //public event Func<object?, EntitiesCollectionChangedEventArgs<TEventArgument>, Task>? EntitiesJoined;
-    //public event Func<object?, EntitiesCollectionChangedEventArgs<TEventArgument>, Task>? EntitiesLeft;
-
     private bool HasValidItems(List<TEntity> list) =>
         list is not null && list.Count > 0;
 
@@ -22,7 +19,7 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
 
         firstCollection.Except(secondCollection).ToList();
 
-    public IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> ExecuteMonitoring(
+    public IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> ProduceEvents(
         IEnumerable<TEntity> usersCollectionFromApi,
         IEnumerable<TEntity> usersCollectionFromRepository)
     {
@@ -43,12 +40,4 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
 
             return events;
     }
-
-    //private async Task RaiseEntityCollectionChangedEvent(
-    //    Func<object?, EntitiesCollectionChangedEventArgs<TEventArgument>, Task>? @event,
-    //    EntitiesCollectionChangedEventArgs<TEventArgument> e)
-    //{
-    //    if (@event != null)
-    //        await @event(this, e);
-    //}
 }
