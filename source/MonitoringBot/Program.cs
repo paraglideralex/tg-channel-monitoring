@@ -5,6 +5,7 @@ using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Queries;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure.Persistence;
 using MonitoringBot.Infrastructure.RepositoriesImplementations;
@@ -46,7 +47,7 @@ var backgroundUserFetchService = new FetchUsersBackgroundService(
 var client = new TelegramBotClient(settingsBuilder.TelegramBotSettings!.BotToken);
 
 var messageBuilder = new MessageBuilder(userRepository);
-var monitoringEngine = new EntitiesChangeDetector<ChannelMember>();
+var monitoringEngine = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
 var getAllQuery = new GetAllCurrentSubscribersQuery(userRepository);
 
 var addUserCommand = new AddSubscribersCommand(userRepository);

@@ -3,7 +3,10 @@
 using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Services;
+using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Persistence;
 using MonitoringBot.Infrastructure.RepositoriesImplementations;
 using MonitoringBot.Presentation;
@@ -24,7 +27,7 @@ public class ChangeDetectorSubscribersTests
     private SubscribersChangeProcessor? subscribersChangeProcessor;
     private MonitoringBotDbContextBase? dbContext;
     private List<ChannelMember>? allChannelMembers;
-    private EntitiesChangeDetector<ChannelMember>? subscribersChangeDetector;
+    private EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>? subscribersChangeDetector;
     private AddSubscribersCommand? addSubscribersCommand;
     private DeleteSubscribersCommand? deleteSubscribersCommand;
 
@@ -51,9 +54,9 @@ public class ChangeDetectorSubscribersTests
         subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
         subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
 
-        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember>();
-        subscribersChangeDetector.EntitiesJoined += subscribersChangeProcessor!.OnSubscribersJoined;
-        subscribersChangeDetector.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersLeft;
+        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
+        //subscribersChangeDetector.EntitiesJoined += subscribersChangeProcessor!.OnSubscribersJoined;
+        //subscribersChangeDetector.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersLeft;
     }
 
     [Test]
@@ -64,8 +67,9 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.Add(allChannelMembers![0]);
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, await usersRepository.All());
-
+        var result = subscribersChangeDetector!.ExecuteMonitoring(fromApi, await usersRepository.All());
+        var dese = EntityChangedEventsMapping.
+            ToEntity<EntitiesChangedDomainEventBase<ChannelMember>, ChannelMember>(result.First());
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
@@ -80,7 +84,9 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, await usersRepository.All());
+        var result = subscribersChangeDetector!.ExecuteMonitoring(fromApi, await usersRepository.All());
+        var dese = EntityChangedEventsMapping.
+            ToEntity<EntitiesChangedDomainEventBase<ChannelMember>, ChannelMember>(result.First());
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.ToList();
@@ -97,7 +103,7 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, await usersRepository.All());
+        subscribersChangeDetector!.ExecuteMonitoring(fromApi, await usersRepository.All());
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
@@ -112,7 +118,7 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.AddRange([allChannelMembers![1], allChannelMembers[2]]);
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, await usersRepository.All());
+        subscribersChangeDetector!.ExecuteMonitoring(fromApi, await usersRepository.All());
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();

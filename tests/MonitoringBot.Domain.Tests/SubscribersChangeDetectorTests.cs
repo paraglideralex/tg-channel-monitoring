@@ -1,14 +1,17 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Services;
 
 using NUnit.Framework;
+
+using System.Text.Json;
 
 namespace MonitoringBot.Domain.Tests;
 
 public class SubscribersChangeDetectorTests
 {
-    private EntitiesChangeDetector<ChannelMember>? subscribersChangeDetector;
+    private EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>? subscribersChangeDetector;
     private ProcessorSubscriber? subscriber;
     private List<ChannelMember>? allChannelMembers;
 
@@ -23,11 +26,11 @@ public class SubscribersChangeDetectorTests
             new(4, "4", false, "4", "4", "4", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
         ];
 
-        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember>();
+        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
         subscriber = new ProcessorSubscriber();
 
-        subscribersChangeDetector.EntitiesJoined += subscriber.OnJoined;
-        subscribersChangeDetector.EntitiesLeft += subscriber.OnLeft;
+        //subscribersChangeDetector.EntitiesJoined += subscriber.OnJoined;
+        //subscribersChangeDetector.EntitiesLeft += subscriber.OnLeft;
     }
 
     [Test]
@@ -38,7 +41,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers[0], allChannelMembers[1] };
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, fromRepository);
+        var result = subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Joined, Is.Null);
@@ -53,7 +56,12 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers[0], allChannelMembers[1] };
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, fromRepository);
+        var result = subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
+
+
+        var dese = JsonSerializer.Serialize(result.First());
+
+        //var kk = 
 
         // Assert
         Assert.That(subscriber!.Joined, Is.Not.Null);
@@ -72,7 +80,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = allChannelMembers;
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, fromRepository);
+        subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Joined, Is.Not.Null);
@@ -92,7 +100,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers![0] };
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, fromRepository);
+        subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Left, Is.Not.Null);
@@ -111,7 +119,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers![2], allChannelMembers[3] };
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, fromRepository);
+        subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Left, Is.Not.Null);
@@ -131,7 +139,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers[1], allChannelMembers[2], allChannelMembers[3] };
 
         // Act
-        await subscribersChangeDetector!.ExecuteMonitoringAsync(fromApi, fromRepository);
+        subscribersChangeDetector!.ExecuteMonitoring(fromApi, fromRepository);
 
         // Assert
         Assert.That(subscriber!.Left, Is.Not.Null);

@@ -1,6 +1,7 @@
 ﻿using MonitoringBot.Application.Queries;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
@@ -15,7 +16,7 @@ using Telegram.BotAPI.GettingUpdates;
 public class MonitoringBotRunner
 {
     public MonitoringBotRunner(
-        EntitiesChangeDetector<ChannelMember> subscriberChangeDetector,
+        EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> subscriberChangeDetector,
         GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery,
         EntitiesChangeMessagingService<ChannelMember> messagesSendingService,
         TelegramBotClient telegramBotClient,
@@ -40,7 +41,7 @@ public class MonitoringBotRunner
         this.channelReference = channelReference;
     }
 
-    private readonly EntitiesChangeDetector<ChannelMember> subscriberChangeDetector;
+    private readonly EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> subscriberChangeDetector;
     private readonly GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
     private readonly EntitiesChangeMessagingService<ChannelMember> messagesSendingService;
     private readonly TelegramBotClient telegramBotClient;
@@ -74,9 +75,14 @@ public class MonitoringBotRunner
             return;
         }
 
+        // грузим события в базу
+        // сервис получает события из базы и триггерит эвент
+
+        // по эвенту - обновляется ридмодель
+
         var databaseUsers = await getAllCurrentSubscribersQuery.ExecuteAsync();
 
-        await subscriberChangeDetector.ExecuteMonitoringAsync(apiUsers, databaseUsers);
+        var result = subscriberChangeDetector.ExecuteMonitoring(apiUsers, databaseUsers);
     }
 
     private async Task CheckAndProcessInputsAsync()
@@ -164,11 +170,11 @@ public class MonitoringBotRunner
 
         fetchUsersBackgroundService.Start();
 
-        subscriberChangeDetector.EntitiesJoined += subscribersChangeProcessor.OnSubscribersJoined;
-        subscriberChangeDetector.EntitiesLeft += subscribersChangeProcessor.OnSubscribersLeft;
+        //subscriberChangeDetector.EntitiesJoined += subscribersChangeProcessor.OnSubscribersJoined;
+        //subscriberChangeDetector.EntitiesLeft += subscribersChangeProcessor.OnSubscribersLeft;
 
-        subscriberChangeDetector.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
-        subscriberChangeDetector.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
+        //subscriberChangeDetector.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
+        //subscriberChangeDetector.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
 
         await messagesSendingService.TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");
