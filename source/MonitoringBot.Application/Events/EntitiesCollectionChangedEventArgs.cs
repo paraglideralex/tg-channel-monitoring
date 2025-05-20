@@ -1,4 +1,4 @@
-﻿namespace MonitoringBot.Domain.Events;
+﻿namespace MonitoringBot.Application.Events;
 
 public class EntitiesCollectionChangedEventArgs<T> : EventArgs
 {

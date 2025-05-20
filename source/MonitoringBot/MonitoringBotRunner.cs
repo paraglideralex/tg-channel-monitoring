@@ -82,7 +82,7 @@ public class MonitoringBotRunner
 
         var databaseUsers = await getAllCurrentSubscribersQuery.ExecuteAsync();
 
-        var result = subscriberChangeDetector.ProduceEvents(apiUsers, databaseUsers);
+        var result = subscriberChangeDetector.ProduceEvents(apiUsers, databaseUsers, channelReference);
     }
 
     private async Task CheckAndProcessInputsAsync()

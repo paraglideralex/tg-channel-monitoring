@@ -81,7 +81,7 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.Add(allChannelMembers![0]);
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All());
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
         var addResult = await addEventsCommand.ExecuteAsync(result);
 
         await eventsMonitoringProcessor.ExecuteMonitoringAsync();
@@ -99,7 +99,7 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All());
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
         var addResult = await addEventsCommand.ExecuteAsync(result);
 
         await eventsMonitoringProcessor.ExecuteMonitoringAsync();
@@ -119,7 +119,7 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All());
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
         var addResult = await addEventsCommand.ExecuteAsync(result);
 
         await eventsMonitoringProcessor.ExecuteMonitoringAsync();
@@ -137,7 +137,7 @@ public class ChangeDetectorSubscribersTests
         await usersRepository!.AddRange([allChannelMembers![1], allChannelMembers[2]]);
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All());
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
 
         var addResult = await addEventsCommand.ExecuteAsync(result);
 

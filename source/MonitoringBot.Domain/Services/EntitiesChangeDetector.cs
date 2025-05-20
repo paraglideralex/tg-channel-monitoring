@@ -6,7 +6,7 @@ namespace MonitoringBot.Domain.Services;
 
 public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArgs>
     : IEntitiesChangeDetector<TEntity>
-    where TEntity : class
+    where TEntity : SearchableEntity
     where TOnJoinedEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
     where TOnLeftEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
 {
@@ -21,7 +21,8 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
 
     public IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> ProduceEvents(
         IEnumerable<TEntity> usersCollectionFromApi,
-        IEnumerable<TEntity> usersCollectionFromRepository)
+        IEnumerable<TEntity> usersCollectionFromRepository,
+        string aggregateName)
     {
             var left = ExistInFirstAbsentInSecond(usersCollectionFromRepository, usersCollectionFromApi);
             var joined = ExistInFirstAbsentInSecond(usersCollectionFromApi, usersCollectionFromRepository);
@@ -30,12 +31,18 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
 
             events.AddRange(joined.Select(j => new TOnJoinedEventArgs
             {
-                Entity = j
+                Entity = j,
+                EntityIdProjection = j.IdProjection(),
+                EntityNameProjection = j.NameProjection(),
+                ChannelName = aggregateName
             }));
 
             events.AddRange(left.Select(l => new TOnLeftEventArgs
             {
-                Entity = l
+                Entity = l,
+                EntityIdProjection = l.IdProjection(),
+                EntityNameProjection = l.NameProjection(),
+                ChannelName = aggregateName
             }));
 
             return events;

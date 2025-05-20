@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Application.Commands;
+using MonitoringBot.Application.Events;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;

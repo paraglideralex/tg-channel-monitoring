@@ -1,6 +1,6 @@
 ﻿using MonitoringBot.Application.Commands;
+using MonitoringBot.Application.Events;
 using MonitoringBot.Domain.Entities;
-using MonitoringBot.Domain.Events;
 
 using Serilog;
 

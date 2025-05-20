@@ -1,6 +1,8 @@
-﻿namespace MonitoringBot.Domain.Entities;
+﻿using MonitoringBot.Domain.Abstractions;
 
-public sealed class ChannelMember
+namespace MonitoringBot.Domain.Entities;
+
+public sealed class ChannelMember : SearchableEntity
 {
     public long Id { get; init; }
     public string? NickName { get; init; }
@@ -26,4 +28,7 @@ public sealed class ChannelMember
 
     public override bool Equals(object? obj) => obj is ChannelMember other && Id == other.Id;
     public override int GetHashCode() => Id.GetHashCode();
+
+    public override string IdProjection() => Id.ToString();
+    public override string NameProjection() => NickName?.ToString() ?? "undefined";
 }

@@ -1,5 +1,5 @@
-﻿using MonitoringBot.Domain.Entities;
-using MonitoringBot.Domain.Events;
+﻿using MonitoringBot.Application.Events;
+using MonitoringBot.Domain.Entities;
 using MonitoringBot.Presentation;
 
 using Telegram.BotAPI;

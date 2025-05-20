@@ -1,4 +1,4 @@
-﻿using MonitoringBot.Domain.Events;
+﻿using MonitoringBot.Application.Events;
 
 using Serilog;
 

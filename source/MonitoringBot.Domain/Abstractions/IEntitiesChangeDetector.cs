@@ -6,9 +6,8 @@ namespace MonitoringBot.Domain.Abstractions;
 
 public interface IEntitiesChangeDetector<TEntity>
 {
-    //event Func<object?, EntitiesCollectionChangedEventArgs<TEntity>, Task>? EntitiesJoined;
-    //event Func<object?, EntitiesCollectionChangedEventArgs<TEntity>, Task>? EntitiesLeft;
     public IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> ProduceEvents(
         IEnumerable<TEntity> usersCollectionFromApi,
-        IEnumerable<TEntity> usersCollectionFromRepository);
+        IEnumerable<TEntity> usersCollectionFromRepository,
+        string aggregateName);
 }

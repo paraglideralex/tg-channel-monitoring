@@ -21,7 +21,10 @@ public static class EntityChangedEventsMapping
             AggregateType = typeof(TEntity).Name,
             EventType = domainEvent.GetType().Name,
             Data = JsonSerializer.Serialize(domainEvent),
-            TimeStamp = domainEvent.TimeStamp
+            TimeStamp = domainEvent.TimeStamp,
+            ChannelName = domainEvent.ChannelName,
+            EntityIdProjection = domainEvent.EntityIdProjection,
+            EntityNameProjection = domainEvent.EntityNameProjection
         };
     }
 
