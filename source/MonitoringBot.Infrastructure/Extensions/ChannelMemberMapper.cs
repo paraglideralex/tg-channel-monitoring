@@ -13,7 +13,8 @@ public static class ChannelMemberMapper
         LastName = user.LastName,
         Phone = user.Phone,
         JoinedAt = user.JoinedAt,
-        TimeStamp = user.TimeStamp
+        TimeStamp = user.TimeStamp,
+        ChannelReference = user.ChannelReference
     };
 
     public static ChannelMember ToDomain(this ChannelMemberEntity entity) => new(
@@ -24,6 +25,7 @@ public static class ChannelMemberMapper
         entity.LastName ?? string.Empty,
         entity.Phone ?? string.Empty,
         entity.TimeStamp ?? DateTime.MinValue,
-        entity.JoinedAt ?? DateTime.MinValue
+        entity.JoinedAt ?? DateTime.MinValue,
+        entity.ChannelReference
     );
 }

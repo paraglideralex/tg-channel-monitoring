@@ -3,6 +3,7 @@
 using MonitoringBot;
 using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Queries;
+using MonitoringBot.Application.Queries.Projections;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
@@ -50,7 +51,7 @@ var messageBuilder = new MessageBuilder(userRepository);
 var monitoringEngine = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
 var getAllQuery = new GetAllCurrentSubscribersQuery(userRepository);
 
-var addUserCommand = new AddSubscribersCommand(userRepository);
+var addUserCommand = new AddOrUpdateSubscribersCommand(userRepository);
 var deleteUserCommand = new DeleteSubscribersCommand(userRepository);
 
 var monitoringProcessor = new SubscribersChangeProcessor(addUserCommand, deleteUserCommand);

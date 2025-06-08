@@ -10,14 +10,14 @@ namespace MonitoringBot.Application.Tests.Commands;
 public class AddSubscribersCommandTests
 {
     private Mock<UserRepository>? usersRepositoryMock;
-    private AddSubscribersCommand? addSubscribersCommand;
+    private AddOrUpdateSubscribersCommand? addSubscribersCommand;
     private List<ChannelMember?>? allChannelMembers;
 
     [SetUp]
     public void SetUp()
     {
         usersRepositoryMock = new Mock<UserRepository>();
-        addSubscribersCommand = new AddSubscribersCommand(usersRepositoryMock.Object);
+        addSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepositoryMock.Object);
     }
 
     [Test]
@@ -25,7 +25,7 @@ public class AddSubscribersCommandTests
     {
         allChannelMembers =
         [
-            new(1, "1", false, "1", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)),
+            new(1, "1", false, "1", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel"),
         ];
         var result = await addSubscribersCommand!.ExecuteAsync(allChannelMembers!);
 
@@ -37,7 +37,7 @@ public class AddSubscribersCommandTests
     {
         allChannelMembers = 
         [
-            new(1, "1", false, "1", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)),
+            new(1, "1", false, "1", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel"),
             null
         ];
         var result = await addSubscribersCommand!.ExecuteAsync(allChannelMembers!);

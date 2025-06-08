@@ -7,7 +7,7 @@ using Serilog;
 namespace MonitoringBot.Application.Services;
 
 public class SubscribersChangeProcessor(
-    AddSubscribersCommand addSubscribersCommand,
+    AddOrUpdateSubscribersCommand addSubscribersCommand,
     DeleteSubscribersCommand deleteSubscribersCommand)
 {
     public async Task OnSubscribersJoined(object? sender, EntitiesCollectionChangedEventArgs<ChannelMember> e)

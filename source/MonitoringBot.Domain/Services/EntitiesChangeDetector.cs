@@ -6,7 +6,7 @@ namespace MonitoringBot.Domain.Services;
 
 public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArgs>
     : IEntitiesChangeDetector<TEntity>
-    where TEntity : SearchableEntity
+    where TEntity : ISearchableEntity
     where TOnJoinedEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
     where TOnLeftEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
 {

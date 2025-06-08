@@ -1,4 +1,4 @@
-﻿using MonitoringBot.Application.Queries;
+﻿using MonitoringBot.Application.Queries.Projections;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;

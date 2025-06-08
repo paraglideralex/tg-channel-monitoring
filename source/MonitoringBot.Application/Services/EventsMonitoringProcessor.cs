@@ -1,6 +1,6 @@
 ﻿using MonitoringBot.Application.Events;
-using MonitoringBot.Application.Queries;
-using MonitoringBot.Application.Queries.Arguments;
+using MonitoringBot.Application.Queries.Events;
+using MonitoringBot.Application.Queries.Events.Arguments;
 using MonitoringBot.Domain.Events.ChannelMembers;
 
 namespace MonitoringBot.Application.Services;
@@ -30,13 +30,9 @@ public class EventsMonitoringProcessor<TEntity>(
         foreach (var eventType in allEvents)
         {
             if(eventType.GetType().Name == nameof(SubscriberJoinedEvent))
-            {
                 joined.Add(eventType.Entity);
-            }
             if(eventType.GetType().Name == nameof(SubscriberLeftEvent))
-            {
                 left.Add(eventType.Entity);
-            }
         }
 
         if (HasValidItems(left))

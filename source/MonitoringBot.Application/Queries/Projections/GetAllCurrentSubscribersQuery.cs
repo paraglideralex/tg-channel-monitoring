@@ -1,7 +1,7 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure;
 
-namespace MonitoringBot.Application.Queries;
+namespace MonitoringBot.Application.Queries.Projections;
 
 public sealed class GetAllCurrentSubscribersQuery(UserRepository userRepository)
 {

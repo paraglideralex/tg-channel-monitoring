@@ -18,11 +18,11 @@ public static class EntityChangedEventsMapping
         return new EventEntity
         {
             Id = Guid.NewGuid(),
-            AggregateType = typeof(TEntity).Name,
+            EntityType = typeof(TEntity).Name,
             EventType = domainEvent.GetType().Name,
             Data = JsonSerializer.Serialize(domainEvent),
             TimeStamp = domainEvent.TimeStamp,
-            ChannelName = domainEvent.ChannelName,
+            AggregateNameProjection = domainEvent.ChannelName,
             EntityIdProjection = domainEvent.EntityIdProjection,
             EntityNameProjection = domainEvent.EntityNameProjection
         };

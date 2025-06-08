@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using MonitoringBot.Application.Commands;
-using MonitoringBot.Application.Queries;
+using MonitoringBot.Application.Queries.Events;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
@@ -22,7 +22,7 @@ public class ChangeDetectorSubscribersTests
     private MonitoringBotDbContextBase? dbContext;
     private List<ChannelMember>? allChannelMembers;
     private EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>? subscribersChangeDetector;
-    private AddSubscribersCommand? addSubscribersCommand;
+    private AddOrUpdateSubscribersCommand? addSubscribersCommand;
     private DeleteSubscribersCommand? deleteSubscribersCommand;
     private GetEventsInPeriodQueryExecution<ChannelMember>? getEventsInPeriodQueryExecution;
     private AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand;
@@ -33,10 +33,10 @@ public class ChangeDetectorSubscribersTests
     {
         allChannelMembers =
         [
-            new(55, "test1", false, "test1", "test1", "79999998888", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)),
-            new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
-            new(88, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
-            new(99, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
+            new(55, "test1", false, "test1", "test1", "79999998888", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel"),
+            new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel"),
+            new(88, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel"),
+            new(99, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel")
         ];
 
         options = new DbContextOptionsBuilder<MonitoringBotDbContextInMemory>()
@@ -50,7 +50,7 @@ public class ChangeDetectorSubscribersTests
         getEventsInPeriodQueryExecution = new GetEventsInPeriodQueryExecution<ChannelMember>(eventsRepository);
         addEventsCommand = new AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(eventsRepository);
 
-        addSubscribersCommand = new AddSubscribersCommand(usersRepository);
+        addSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepository);
         deleteSubscribersCommand = new DeleteSubscribersCommand(usersRepository);
         subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
         subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);

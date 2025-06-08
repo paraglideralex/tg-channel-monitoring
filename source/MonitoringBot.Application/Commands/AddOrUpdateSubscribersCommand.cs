@@ -6,7 +6,7 @@ using Serilog;
 
 namespace MonitoringBot.Application.Commands;
 
-public sealed class AddSubscribersCommand(UserRepository userRepository) 
+public sealed class AddOrUpdateSubscribersCommand(UserRepository userRepository) 
     : BaseCommand<IEnumerable<ChannelMember>>
 {
     protected override bool Validate(IEnumerable<ChannelMember> channelMembers)

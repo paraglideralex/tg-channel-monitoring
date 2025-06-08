@@ -1,18 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
+using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
 using MonitoringBot.Domain.RepositoriesAbstarctions;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Persistence;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-
-using TL;
 
 namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
 
@@ -35,12 +27,39 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
     {
         var rows = await dbContext.Events
             .Where(e =>
-                e.AggregateType == typeof(TEntity).Name &&
+                e.EntityType == typeof(TEntity).Name &&
                 e.TimeStamp >= from &&
                 e.TimeStamp <= to)
             .OrderBy(e => e.TimeStamp)
             .ToListAsync(cancellationToken);
 
         return rows.Select(EntityChangedEventsMapping.MapToDomainEvent<TEntity>).ToList();
+    }
+
+    public override async Task<IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>>> GetEventsByFilterAsync(
+        EventsQueryFilter filter,
+        CancellationToken cancellationToken = default)
+    {
+        var query = dbContext.Events.AsQueryable();
+
+        if(filter.Id is not null)
+            query = query.Where(q => q.Id == filter.Id);
+        if(filter.EventType is not null)
+            query = query.Where(q => q.EventType == filter.EventType);
+        if (filter.EntityType is not null)
+            query = query.Where(q => q.EntityType == filter.EntityType);
+        if (filter.EntityIdProjection is not null)
+            query = query.Where(q => q.EntityIdProjection == filter.EntityIdProjection);
+        if (filter.EntityNameProjection is not null)
+            query = query.Where(q => q.EntityNameProjection == filter.EntityNameProjection);
+        if (filter.EntityAggregateNameProjection is not null)
+            query = query.Where(q => q.AggregateNameProjection == filter.EntityAggregateNameProjection);
+        if (filter.FromNonInclusive is not null)
+            query = query.Where(q => q.TimeStamp > filter.FromNonInclusive);
+        if (filter.Toinclusive is not null)
+            query = query.Where(q => q.TimeStamp > filter.Toinclusive);
+
+        var events = await query.ToListAsync(cancellationToken);
+        return events.Select(EntityChangedEventsMapping.MapToDomainEvent<TEntity>).ToList();
     }
 }

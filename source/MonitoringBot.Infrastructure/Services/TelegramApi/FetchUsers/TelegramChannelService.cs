@@ -213,6 +213,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         tgUser.last_name,
         tgUser.phone,
         DateTime.Now,
-        DateTime.Now
+        DateTime.Now,
+        channelReference
     );
 }

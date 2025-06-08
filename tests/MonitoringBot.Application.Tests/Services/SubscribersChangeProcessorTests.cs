@@ -18,7 +18,7 @@ public class SubscribersChangeProcessorTests
     private SubscribersChangeProcessor? monitoringEngine;
     private List<ChannelMember>? allChannelMembers;
     private Mock<EventsMonitoringProcessor<ChannelMember>>? subscribersChangeDetectorMock;
-    private AddSubscribersCommand? addSubscribersCommand;
+    private AddOrUpdateSubscribersCommand? addSubscribersCommand;
     private DeleteSubscribersCommand? deleteSubscribersCommand;
 
     [SetUp]
@@ -26,14 +26,14 @@ public class SubscribersChangeProcessorTests
     {
         allChannelMembers =
         [
-            new(1, "1", false, "1", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3)),
-            new(2, "2", false, "2", "2", "2", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
-            new(3, "3", false, "3", "3", "3", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5)),
-            new(4, "4", false, "4", "4", "4", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5))
+            new(1, "1", false, "1", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel"),
+            new(2, "2", false, "2", "2", "2", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel"),
+            new(3, "3", false, "3", "3", "3", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel"),
+            new(4, "4", false, "4", "4", "4", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel")
         ];
 
         usersRepositoryMock = new Mock<UserRepository>();
-        addSubscribersCommand = new AddSubscribersCommand(usersRepositoryMock.Object);
+        addSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepositoryMock.Object);
         deleteSubscribersCommand = new DeleteSubscribersCommand(usersRepositoryMock.Object);
 
         monitoringEngine = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
