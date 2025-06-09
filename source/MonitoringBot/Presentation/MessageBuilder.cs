@@ -103,13 +103,14 @@ public class MessageBuilder(UserRepository userRepository)
         var sb = new StringBuilder();
 
         sb.AppendLine($"  ID: {member.Id}");
-        sb.AppendLine($"  Информация от: {member.TimeStamp?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
         sb.AppendLine($"  Никнейм: @{(string.IsNullOrEmpty(member.NickName) ? "не указан" : member.NickName)}");
         sb.AppendLine($"  Это бот: {(member.IsBot ? "да" : "нет")}");
         sb.AppendLine($"  Имя: {member.FirstName}");
         sb.AppendLine($"  Фамилия: {member.LastName}");
         sb.AppendLine($"  Телефон: {(string.IsNullOrEmpty(member.Phone) ? "не указан" : member.Phone)}");
-        sb.AppendLine($"  Присоединился: {member.Created?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
+        sb.AppendLine($"  Последнее действие: {MapActions(member.LastAction ?? "null")}");
+        sb.AppendLine($"  Информация от: {member.TimeStamp?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
+        sb.AppendLine($"  Впервые зарегистрирован: {member.Created?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
         return sb.ToString();
     }
 

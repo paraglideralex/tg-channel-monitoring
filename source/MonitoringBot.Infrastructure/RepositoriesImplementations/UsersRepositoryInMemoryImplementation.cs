@@ -46,7 +46,7 @@ public class UsersRepositoryInMemoryImplementation(
         existing.Phone = user.Phone;
         existing.ChannelReference = user.ChannelReference;
         existing.LastAction = lastAction;
-        existing.TimeStamp = DateTime.UtcNow;
+        existing.TimeStamp = DateTime.Now;
 
         await context.SaveChangesAsync();
     }
@@ -70,7 +70,7 @@ public class UsersRepositoryInMemoryImplementation(
             existing.Phone = updated.Phone;
             existing.ChannelReference = updated.ChannelReference;
             existing.LastAction = lastAction;
-            existing.TimeStamp = DateTime.UtcNow;
+            existing.TimeStamp = DateTime.Now;
         }
 
         await context.SaveChangesAsync();
