@@ -1,0 +1,36 @@
+﻿using MonitoringBot.Application.Events;
+using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.Events;
+using MonitoringBot.Infrastructure;
+using MonitoringBot.Infrastructure.Extensions;
+
+using Serilog;
+
+namespace MonitoringBot.Application.Commands;
+
+public sealed class AddOrUpdateSubscribersCommand(UserRepository userRepository) 
+    : BaseCommand<EntitiesCollectionChangedEventArgs<ChannelMember>>
+{
+    protected override bool Validate(EntitiesCollectionChangedEventArgs<ChannelMember> eventArgs)
+    {
+        var basic = base.Validate(eventArgs);
+        bool eachNotNull = eventArgs.EntitiesDifference.AllNotNull();
+        bool notEmpty = eventArgs.EntitiesDifference.Any();
+        return basic && eachNotNull && notEmpty;
+    }
+
+    protected override async Task ExecuteCoreAsync(EntitiesCollectionChangedEventArgs<ChannelMember> arguments)
+    {
+        var existingMembers = await userRepository.FindByIds(arguments.EntitiesDifference.Select(x => x.Id));
+
+        if(existingMembers is not null && existingMembers.Count != 0)
+        {
+            await userRepository.UpdateRangeAsync(existingMembers, arguments.EventType);
+            Log.Information($"Обновлены пользователи: {string.Join(";", existingMembers.Select(x => x.NickName))}");
+        }
+
+        var newMembers = arguments.EntitiesDifference.Except(existingMembers ?? []);
+        await userRepository.AddRange(newMembers, arguments.EventType);
+        Log.Information($"Новые пользователи добавлены в базу: {string.Join(";", newMembers.Select(x => x.NickName))}");
+    }
+}

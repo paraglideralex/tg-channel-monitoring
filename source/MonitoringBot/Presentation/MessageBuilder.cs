@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Infrastructure;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Persistence;
@@ -13,7 +14,8 @@ public class MessageBuilder(UserRepository userRepository)
     public async Task<string> CheckDiagnostics(int dataUpdatePeriodSeconds, 
         int botSubscribersCount,
         DateTime startWorkingTimeStamp,
-        TelegramServiceState state)
+        TelegramServiceState state,
+        string channelReference)
     {
         var sb = new StringBuilder();
 
@@ -25,20 +27,38 @@ public class MessageBuilder(UserRepository userRepository)
         sb.AppendLine($"Статус инициализации: {state.IsInitialized}");
         sb.AppendLine($"Продолжительность работы: '{(DateTime.Now - startWorkingTimeStamp).FormattedDuration()}'");
         sb.AppendLine($"Последний успешный поиск подписчиков: {state.LastSearchParticipantsTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
+        sb.AppendLine($"Канал: {channelReference}");
+        sb.AppendLine($"Среда: {Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")}");
         sb.AppendLine($"Инфа от: {DateTime.Now.ToString("dd.MM.yyyy HH:mm")}");
         return sb.ToString();
     }
 
-    public async Task<string> Last(int count = 5)
+    private string GetLastCore(List<ChannelMember> subscribers, int count = 5)
     {
         if (count <= 0)
             return "⚠️ число не может быть меньше или равно нулю";
         if (count > 50)
             return "⚠️ нельзя вернуть больше 50 юзеров";
 
-        var members = await userRepository.TakeLast(count);
+        return FormatMembers(subscribers.Count >= count ? subscribers.Take(count) : subscribers);
+    }
 
-        return FormatMembers(members.Count >= count ? members.Take(count) : members);
+    public async Task<string> Last(int count = 5)
+    {
+        var members = await userRepository.TakeLast(count);
+        return GetLastCore(members, count);
+    }
+
+    public async Task<string> LastSubscribed(int count = 5)
+    {
+        var members = await userRepository.TakeLastByAction(nameof(SubscriberJoinedEvent), count);
+        return GetLastCore(members, count);
+    }
+
+    public async Task<string> LastUnsubscribed(int count = 5)
+    {
+        var members = await userRepository.TakeLastByAction(nameof(SubscriberLeftEvent), count);
+        return GetLastCore(members, count);
     }
 
     public string Info(string channelReference) =>
@@ -49,12 +69,13 @@ public class MessageBuilder(UserRepository userRepository)
         var sb = new StringBuilder();
 
         sb.AppendLine($"  ID: {member.Id}");
-        sb.AppendLine($"  Присоединился: {member.JoinedAt?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
+        sb.AppendLine($"  Присоединился: {member.Created?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
         sb.AppendLine($"  Никнейм: @{(string.IsNullOrEmpty(member.NickName) ? "не указан" : member.NickName)}");
         sb.AppendLine($"  Это бот: {(member.IsBot ? "да" : "нет")}");
         sb.AppendLine($"  Имя: {member.FirstName}");
         sb.AppendLine($"  Фамилия: {member.LastName}");
         sb.AppendLine($"  Телефон: {(string.IsNullOrEmpty(member.Phone) ? "не указан" : member.Phone)}");
+        sb.AppendLine($"  Последнее действие: {MapActions(member.LastAction ?? "null")}");
         sb.AppendLine($"  Инфа от: {member.TimeStamp?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
         return sb.ToString();
     }
@@ -82,13 +103,14 @@ public class MessageBuilder(UserRepository userRepository)
         var sb = new StringBuilder();
 
         sb.AppendLine($"  ID: {member.Id}");
-        sb.AppendLine($"  Информация от: {member.TimeStamp?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
         sb.AppendLine($"  Никнейм: @{(string.IsNullOrEmpty(member.NickName) ? "не указан" : member.NickName)}");
         sb.AppendLine($"  Это бот: {(member.IsBot ? "да" : "нет")}");
         sb.AppendLine($"  Имя: {member.FirstName}");
         sb.AppendLine($"  Фамилия: {member.LastName}");
         sb.AppendLine($"  Телефон: {(string.IsNullOrEmpty(member.Phone) ? "не указан" : member.Phone)}");
-        sb.AppendLine($"  Присоединился: {member.JoinedAt?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
+        sb.AppendLine($"  Последнее действие: {MapActions(member.LastAction ?? "null")}");
+        sb.AppendLine($"  Информация от: {member.TimeStamp?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
+        sb.AppendLine($"  Впервые зарегистрирован: {member.Created?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
         return sb.ToString();
     }
 
@@ -122,4 +144,10 @@ public class MessageBuilder(UserRepository userRepository)
         return FormatMembers(members.Count >= count ? members.Take(count) : members);
     }
 
+    public string MapActions(string action) => action switch
+    {
+        nameof(SubscriberJoinedEvent) => "Подписка",
+        nameof(SubscriberLeftEvent) => "Отписка",
+        _ => $"Неизвестное действие {action}"
+    };
 }

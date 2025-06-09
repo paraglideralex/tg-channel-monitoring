@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Infrastructure.Persistence;
 
 namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
@@ -8,27 +9,71 @@ namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
 public class UsersRepositoryInMemoryImplementation(
     MonitoringBotDbContextBase context) : UserRepository
 {
-    public override async Task Add(ChannelMember user)
+    public override async Task AddAsync(ChannelMember user, string? lastAction)
     {
         var exists = await context.ChannelMembers.AnyAsync(u => u.Id == user.Id);
         if (!exists)
         {
-            context.ChannelMembers.Add(user.ToEntity());
+            context.ChannelMembers.Add(user.ToEntity(lastAction));
             await context.SaveChangesAsync();
         }
     }
 
-    public override async Task AddRange(IEnumerable<ChannelMember> users)
+    public override async Task AddRange(IEnumerable<ChannelMember> users, string? lastAction)
     {
         var existingIds = await context.ChannelMembers.Select(u => u.Id).ToListAsync();
         var newUsers = users.Where(u => !existingIds.Contains(u.Id)).ToList();
 
         if (newUsers.Count != 0)
         {
-            var entities = newUsers.Select(u => u.ToEntity());
+            var entities = newUsers.Select(u => u.ToEntity(lastAction));
             context.ChannelMembers.AddRange(entities);
             await context.SaveChangesAsync();
         }
+    }
+
+    public override async Task UpdateAsync(ChannelMember user, string? lastAction)
+    {
+        var existing = await context.ChannelMembers.FindAsync(user.Id);
+
+        if(existing is null)
+            throw new InvalidOperationException($"User with Id: {user.Id} does not exist.");
+
+        existing.NickName = user.NickName;
+        existing.IsBot = user.IsBot;
+        existing.FirstName = user.FirstName;
+        existing.LastName = user.LastName;
+        existing.Phone = user.Phone;
+        existing.ChannelReference = user.ChannelReference;
+        existing.LastAction = lastAction;
+        existing.TimeStamp = DateTime.Now;
+
+        await context.SaveChangesAsync();
+    }
+
+    public override async Task UpdateRangeAsync(IEnumerable<ChannelMember> users, string? lastAction)
+    {
+        var userIds = users.Select(e => e.Id).ToList();
+
+        var existingEntities = await context.ChannelMembers
+            .Where(cm => userIds.Contains(cm.Id))
+            .ToListAsync();
+
+        foreach (var existing in existingEntities)
+        {
+            var updated = users.First(e => e.Id == existing.Id);
+
+            existing.NickName = updated.NickName;
+            existing.IsBot = updated.IsBot;
+            existing.FirstName = updated.FirstName;
+            existing.LastName = updated.LastName;
+            existing.Phone = updated.Phone;
+            existing.ChannelReference = updated.ChannelReference;
+            existing.LastAction = lastAction;
+            existing.TimeStamp = DateTime.Now;
+        }
+
+        await context.SaveChangesAsync();
     }
 
     public override async Task Delete(ChannelMember user)
@@ -72,15 +117,17 @@ public class UsersRepositoryInMemoryImplementation(
         return entities.Select(e => e.ToDomain()).ToList();
     }
 
-    public override Task<List<ChannelMember>> FindByIds(IEnumerable<ChannelMember> usersCollection, IEnumerable<long> identities)
-    {
-        var filtered = usersCollection.Where(u => identities.Contains(u.Id)).ToList();
-        return Task.FromResult(filtered);
-    }
-
     public override async Task<List<ChannelMember>> TakeLast(int count = 5)
     {
-        var ordered = context.ChannelMembers.OrderByDescending(m => m.JoinedAt);
+        var ordered = context.ChannelMembers.OrderByDescending(m => m.TimeStamp);
+        var taken = ordered.Count() >= count ? ordered.Take(count) : ordered;
+        return await taken.Select(t => t.ToDomain()).ToListAsync();
+    }
+
+    public override async Task<List<ChannelMember>> TakeLastByAction(string lastAction, int count = 5)
+    {
+        var filtered = context.ChannelMembers.AsNoTracking().Where(cm => cm.LastAction == lastAction);
+        var ordered = filtered.OrderByDescending(m => m.TimeStamp);
         var taken = ordered.Count() >= count ? ordered.Take(count) : ordered;
         return await taken.Select(t => t.ToDomain()).ToListAsync();
     }
@@ -88,5 +135,12 @@ public class UsersRepositoryInMemoryImplementation(
     public override async Task<List<ChannelMember>> All()
     {
         return await context.ChannelMembers.Select(u => u.ToDomain()).ToListAsync();
+    }
+
+    public override async Task<List<ChannelMember>> AllSubscribed()
+    {
+        return await context.ChannelMembers
+            .Where(cm => cm.LastAction == nameof(SubscriberJoinedEvent))
+            .Select(u => u.ToDomain()).ToListAsync();
     }
 }

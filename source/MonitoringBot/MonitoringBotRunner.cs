@@ -1,7 +1,9 @@
-﻿using MonitoringBot.Application.Queries;
+﻿using MonitoringBot.Application.Abstractions;
+using MonitoringBot.Application.Queries.Projections;
 using MonitoringBot.Application.Services;
+using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
-using MonitoringBot.Domain.Services;
+using MonitoringBot.Domain.Events;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 using MonitoringBot.Presentation;
@@ -12,10 +14,12 @@ using Serilog;
 using Telegram.BotAPI;
 using Telegram.BotAPI.GettingUpdates;
 
-public class MonitoringBotRunner
+public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
+    where TEntity : ISearchableEntity
+    where TOnJoinedEvent : EntitiesChangedDomainEventBase<TEntity>, new()
+    where TOnLeftEvent : EntitiesChangedDomainEventBase<TEntity>, new()
 {
     public MonitoringBotRunner(
-        EntitiesChangeDetector<ChannelMember> subscriberChangeDetector,
         GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery,
         EntitiesChangeMessagingService<ChannelMember> messagesSendingService,
         TelegramBotClient telegramBotClient,
@@ -25,9 +29,10 @@ public class MonitoringBotRunner
         MonitoringPresentation monitoringPresentation,
         List<long> chatIdCollection,
         int checkPeriodSeconds,
-        string channelReference)
+        string channelReference,
+        IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor,
+        IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService)
     {
-        this.subscriberChangeDetector = subscriberChangeDetector;
         this.getAllCurrentSubscribersQuery = getAllCurrentSubscribersQuery;
         this.messagesSendingService = messagesSendingService;
         this.telegramBotClient = telegramBotClient;
@@ -38,9 +43,10 @@ public class MonitoringBotRunner
         this.chatIdCollection = chatIdCollection;
         this.checkPeriodSeconds = checkPeriodSeconds;
         this.channelReference = channelReference;
+        this.eventsMonitoringProcessor = eventsMonitoringProcessor;
+        this.monitoringService = monitoringService;
     }
 
-    private readonly EntitiesChangeDetector<ChannelMember> subscriberChangeDetector;
     private readonly GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
     private readonly EntitiesChangeMessagingService<ChannelMember> messagesSendingService;
     private readonly TelegramBotClient telegramBotClient;
@@ -50,6 +56,8 @@ public class MonitoringBotRunner
     private readonly MonitoringPresentation monitoringPresentation;
     private readonly List<long> chatIdCollection;
     private readonly string channelReference;
+    private readonly IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor;
+    private readonly IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService;
 
     private int checkPeriodSeconds;
     private DateTime basicTimeStamp;
@@ -60,23 +68,9 @@ public class MonitoringBotRunner
     {
         if ((DateTime.Now - basicTimeStamp).TotalSeconds > checkPeriodSeconds)
         {
-            await ProcessMonitoringAsync();
+            await monitoringService.ProcessMonitoringAsync();
             basicTimeStamp = DateTime.Now;
         }
-    }
-
-    private async Task ProcessMonitoringAsync()
-    {
-        var apiUsers = fetchUsersBackgroundService.GetSnapshot();
-        if(apiUsers is null)
-        {
-            Log.Warning("Неполадки на стороне сервиса Tg API, подписчики не получены из телеграм-канала.");
-            return;
-        }
-
-        var databaseUsers = await getAllCurrentSubscribersQuery.ExecuteAsync();
-
-        await subscriberChangeDetector.ExecuteMonitoringAsync(apiUsers, databaseUsers);
     }
 
     private async Task CheckAndProcessInputsAsync()
@@ -99,12 +93,15 @@ public class MonitoringBotRunner
                 {
                     "/info" => messageBuilder.Info(channelReference),
                     "/last" => await messageBuilder.Last(),
+                    "/last_subscribed" => await messageBuilder.LastSubscribed(),
+                    "/last_unsubscribed" => await messageBuilder.LastUnsubscribed(),
                     "/change_period" => "будет менять период мониторинга",
                     "/check" => await messageBuilder.CheckDiagnostics(
                                       checkPeriodSeconds, 
                                       chatIdCollection.Count,
                                       beginWorkingFrom,
-                                      fetchUsersBackgroundService.GetState()),
+                                      fetchUsersBackgroundService.GetState(),
+                                      channelReference),
                     _ => null
                 };
 
@@ -164,16 +161,16 @@ public class MonitoringBotRunner
 
         fetchUsersBackgroundService.Start();
 
-        subscriberChangeDetector.EntitiesJoined += subscribersChangeProcessor.OnSubscribersJoined;
-        subscriberChangeDetector.EntitiesLeft += subscribersChangeProcessor.OnSubscribersLeft;
+        eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor.OnSubscribersQuantityChanged;
+        eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor.OnSubscribersQuantityChanged;
 
-        subscriberChangeDetector.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
-        subscriberChangeDetector.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
+        eventsMonitoringProcessor.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
+        eventsMonitoringProcessor.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
 
         await messagesSendingService.TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");
 
-        await ProcessMonitoringAsync(); // TODO: получить существующих юзеров для мониторинга из базы, когда она таки-будет
+        await monitoringService.ProcessMonitoringAsync(); // TODO: получить существующих юзеров для мониторинга из базы, когда она таки-будет
     }
 
     public async Task MainLoopAsync()

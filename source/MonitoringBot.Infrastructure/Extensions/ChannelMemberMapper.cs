@@ -12,8 +12,23 @@ public static class ChannelMemberMapper
         FirstName = user.FirstName,
         LastName = user.LastName,
         Phone = user.Phone,
-        JoinedAt = user.JoinedAt,
-        TimeStamp = user.TimeStamp
+        Created = user.Created,
+        TimeStamp = user.TimeStamp,
+        ChannelReference = user.ChannelReference
+    };
+
+    public static ChannelMemberEntity ToEntity(this ChannelMember user, string? lastAction) => new()
+    {
+        Id = user.Id,
+        NickName = user.NickName,
+        IsBot = user.IsBot,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        Phone = user.Phone,
+        Created = user.Created,
+        TimeStamp = user.TimeStamp,
+        ChannelReference = user.ChannelReference,
+        LastAction = lastAction
     };
 
     public static ChannelMember ToDomain(this ChannelMemberEntity entity) => new(
@@ -24,6 +39,8 @@ public static class ChannelMemberMapper
         entity.LastName ?? string.Empty,
         entity.Phone ?? string.Empty,
         entity.TimeStamp ?? DateTime.MinValue,
-        entity.JoinedAt ?? DateTime.MinValue
+        entity.Created ?? DateTime.MinValue,
+        entity.ChannelReference,
+        entity.LastAction
     );
 }

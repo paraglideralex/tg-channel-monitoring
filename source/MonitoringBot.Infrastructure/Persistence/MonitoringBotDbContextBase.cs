@@ -9,9 +9,12 @@ public class MonitoringBotDbContextBase: DbContext
     }
 
     public DbSet<ChannelMemberEntity> ChannelMembers { get; set; }
+    public DbSet<EventEntity> Events { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ChannelMemberEntity>().HasKey(u => u.Id);
+        modelBuilder.Entity<EventEntity>()
+            .HasKey(u => u.Id);
     }
 }
