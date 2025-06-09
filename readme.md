@@ -7,12 +7,12 @@ sequenceDiagram
 	actor User
 
 	box Presentation 
-    participant BotRunner as Bot<br>Runner
     
     participant MessagesSendingService as Messages sending<br>service
     end
 
 	box Application
+	   participant SubscribersMonitoringService as Subscribers<br>MonitoringService
     participant EventsMonitoringProcessor as Events monitoring<br>processor
     participant SubscribersChangeProcessor as Subscribers change<br>processor
     end
@@ -28,47 +28,48 @@ sequenceDiagram
 	end
   
 
-    activate BotRunner
+    activate SubscribersMonitoringService
 
-	    BotRunner->>TgApi: FetchUsersBackgroundService.GetSnapshot()
+	    SubscribersMonitoringService->>TgApi: FetchUsersBackgroundService.GetSnapshot()
 	    activate TgApi
-		TgApi -->> BotRunner: List<ChannelMember> users snapshot from API
+		TgApi -->> SubscribersMonitoringService: List<ChannelMember> users snapshot from API
 		deactivate TgApi
 	
-	    BotRunner->>UsersReadModel: GetAllCurrentSubscribersQuery.ExecuteAsync()
+	    SubscribersMonitoringService->>UsersReadModel: GetAllCurrentSubscribersQuery.ExecuteAsync()
 	    activate UsersReadModel
-	    UsersReadModel-->>BotRunner: List<ChannelMember> current users
+	    UsersReadModel-->>SubscribersMonitoringService: List<ChannelMember> current users
 	    deactivate UsersReadModel
 	
-		BotRunner ->> ChangeDetector: ProduceEvents(apiUsers, databaseUsers, channelReference) generates subscribe/unsubscribe events
+		SubscribersMonitoringService ->> ChangeDetector: ProduceEvents(apiUsers, databaseUsers, channelReference) generates subscribe/unsubscribe events
 		activate ChangeDetector
-		ChangeDetector -->> BotRunner: IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> events
+		ChangeDetector -->> SubscribersMonitoringService: IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> events
 		deactivate ChangeDetector
 	
-		BotRunner ->> EventsStorage: AddEventsCommand.ExecuteAsync(events)
+		SubscribersMonitoringService ->> EventsStorage: AddEventsCommand.ExecuteAsync(events)
+	deactivate SubscribersMonitoringService
 		activate EventsStorage
 		deactivate EventsStorage
 		EventsMonitoringProcessor ->> EventsStorage: GetEventsInPeriodQueryExecution.GetEventsByPeriodAsync(events)
 		activate EventsStorage
-		
+
 		activate EventsMonitoringProcessor
 		EventsStorage -->> EventsMonitoringProcessor: events
 		deactivate EventsStorage
 	
-		EventsMonitoringProcessor ->> SubscribersChangeProcessor: events
+		EventsMonitoringProcessor ->> SubscribersChangeProcessor: aggregated<br/>by type events
 		activate SubscribersChangeProcessor
-		SubscribersChangeProcessor ->> UsersReadModel: AddOrUpdateSubscribersCommand.ExecuteAsync(IEnumerable<ChannelMember> changedSubscribers)
+		SubscribersChangeProcessor ->> UsersReadModel: AddOrUpdateSubscribersCommand.ExecuteAsync<br/>(EntitiesCollectionChangedEventArgs<ChannelMember> aggregatedEvent)
 		activate UsersReadModel
 		deactivate UsersReadModel
 		deactivate SubscribersChangeProcessor
 	
-		EventsMonitoringProcessor ->> MessagesSendingService: events
+		EventsMonitoringProcessor ->> MessagesSendingService: aggregated<br/>by type events
 		deactivate EventsMonitoringProcessor
 		activate MessagesSendingService
-		MessagesSendingService ->> User: notification message in Telegram
+		MessagesSendingService ->> User: Telegram<br/>notification
 		deactivate MessagesSendingService
 
 		
-	deactivate BotRunner
+	
 
 ```

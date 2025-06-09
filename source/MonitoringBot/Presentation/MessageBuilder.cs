@@ -14,7 +14,8 @@ public class MessageBuilder(UserRepository userRepository)
     public async Task<string> CheckDiagnostics(int dataUpdatePeriodSeconds, 
         int botSubscribersCount,
         DateTime startWorkingTimeStamp,
-        TelegramServiceState state)
+        TelegramServiceState state,
+        string channelReference)
     {
         var sb = new StringBuilder();
 
@@ -26,6 +27,8 @@ public class MessageBuilder(UserRepository userRepository)
         sb.AppendLine($"Статус инициализации: {state.IsInitialized}");
         sb.AppendLine($"Продолжительность работы: '{(DateTime.Now - startWorkingTimeStamp).FormattedDuration()}'");
         sb.AppendLine($"Последний успешный поиск подписчиков: {state.LastSearchParticipantsTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
+        sb.AppendLine($"Канал: {channelReference}");
+        sb.AppendLine($"Среда: {Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")}");
         sb.AppendLine($"Инфа от: {DateTime.Now.ToString("dd.MM.yyyy HH:mm")}");
         return sb.ToString();
     }

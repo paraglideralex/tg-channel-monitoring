@@ -100,7 +100,8 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                                       checkPeriodSeconds, 
                                       chatIdCollection.Count,
                                       beginWorkingFrom,
-                                      fetchUsersBackgroundService.GetState()),
+                                      fetchUsersBackgroundService.GetState(),
+                                      channelReference),
                     _ => null
                 };
 
