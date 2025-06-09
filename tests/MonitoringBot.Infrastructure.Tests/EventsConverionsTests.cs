@@ -14,6 +14,6 @@ public class EventsConverionsTests
     [Test]
     public void Base()
     {
-        var entity = new ChannelMember(1, "1", false, "1", "1", "1", new DateTime(2025, 1, 1, 3, 3, 3), new DateTime(2025, 1, 1, 3, 3, 3), "test-channel");
+        var entity = new ChannelMember(1, "1", false, "1", "1", "1", new DateTime(2025, 1, 1, 3, 3, 3), new DateTime(2025, 1, 1, 3, 3, 3), "test-channel", "test");
     }
 }

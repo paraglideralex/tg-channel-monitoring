@@ -27,16 +27,17 @@ public class ChangeDetectorSubscribersTests
     private GetEventsInPeriodQueryExecution<ChannelMember>? getEventsInPeriodQueryExecution;
     private AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand;
     private EventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor;
+    private const string lastActionBase = "base-action";
 
     [SetUp]
     public void SetUp()
     {
         allChannelMembers =
         [
-            new(55, "test1", false, "test1", "test1", "79999998888", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel"),
-            new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel"),
-            new(88, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel"),
-            new(99, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel")
+            new(55, "test1", false, "test1", "test1", "79999998888", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel",lastActionBase),
+            new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel",lastActionBase),
+            new(88, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel",lastActionBase),
+            new(99, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel",lastActionBase)
         ];
 
         options = new DbContextOptionsBuilder<MonitoringBotDbContextInMemory>()
@@ -78,7 +79,7 @@ public class ChangeDetectorSubscribersTests
     {
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![0], allChannelMembers[1] };
-        await usersRepository!.Add(allChannelMembers![0]);
+        await usersRepository!.AddAsync(allChannelMembers![0], null);
 
         // Act
         var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
@@ -96,7 +97,7 @@ public class ChangeDetectorSubscribersTests
     {
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![0] };
-        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
+        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]], null);
 
         // Act
         var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
@@ -116,7 +117,7 @@ public class ChangeDetectorSubscribersTests
     {
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![1], allChannelMembers![2] };
-        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]]);
+        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]], null);
 
         // Act
         var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
@@ -134,7 +135,7 @@ public class ChangeDetectorSubscribersTests
     {
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![1], allChannelMembers![2] };
-        await usersRepository!.AddRange([allChannelMembers![1], allChannelMembers[2]]);
+        await usersRepository!.AddRange([allChannelMembers![1], allChannelMembers[2]], null);
 
         // Act
         var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");

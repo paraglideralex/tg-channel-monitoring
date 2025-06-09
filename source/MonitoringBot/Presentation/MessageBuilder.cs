@@ -49,7 +49,7 @@ public class MessageBuilder(UserRepository userRepository)
         var sb = new StringBuilder();
 
         sb.AppendLine($"  ID: {member.Id}");
-        sb.AppendLine($"  Присоединился: {member.JoinedAt?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
+        sb.AppendLine($"  Присоединился: {member.Created?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
         sb.AppendLine($"  Никнейм: @{(string.IsNullOrEmpty(member.NickName) ? "не указан" : member.NickName)}");
         sb.AppendLine($"  Это бот: {(member.IsBot ? "да" : "нет")}");
         sb.AppendLine($"  Имя: {member.FirstName}");
@@ -88,7 +88,7 @@ public class MessageBuilder(UserRepository userRepository)
         sb.AppendLine($"  Имя: {member.FirstName}");
         sb.AppendLine($"  Фамилия: {member.LastName}");
         sb.AppendLine($"  Телефон: {(string.IsNullOrEmpty(member.Phone) ? "не указан" : member.Phone)}");
-        sb.AppendLine($"  Присоединился: {member.JoinedAt?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
+        sb.AppendLine($"  Присоединился: {member.Created?.ToString("dd.MM.yyyy HH:mm") ?? ""}");
         return sb.ToString();
     }
 

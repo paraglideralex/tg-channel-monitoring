@@ -1,6 +1,5 @@
 ﻿using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Events;
-using MonitoringBot.Domain.Events.ChannelMembers;
 
 namespace MonitoringBot.Domain.Services;
 

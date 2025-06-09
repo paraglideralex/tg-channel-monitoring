@@ -1,4 +1,5 @@
-﻿using MonitoringBot.Application.Commands;
+﻿using MonitoringBot.Application.Abstractions;
+using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Events;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Abstractions;
@@ -17,19 +18,20 @@ public class SubscribersChangeProcessorTests
     private Mock<UserRepository>? usersRepositoryMock;
     private SubscribersChangeProcessor? monitoringEngine;
     private List<ChannelMember>? allChannelMembers;
-    private Mock<EventsMonitoringProcessor<ChannelMember>>? subscribersChangeDetectorMock;
+    private Mock<IEventsMonitoringProcessor<ChannelMember>>? eventsMonitoringProcessorMock;
     private AddOrUpdateSubscribersCommand? addSubscribersCommand;
     private DeleteSubscribersCommand? deleteSubscribersCommand;
+    private const string eventName = "test-event";
 
     [SetUp]
     public void SetUp()
     {
         allChannelMembers =
         [
-            new(1, "1", false, "1", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel"),
-            new(2, "2", false, "2", "2", "2", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel"),
-            new(3, "3", false, "3", "3", "3", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel"),
-            new(4, "4", false, "4", "4", "4", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel")
+            new(1, "1", false, "1", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel",eventName),
+            new(2, "2", false, "2", "2", "2", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel",eventName),
+            new(3, "3", false, "3", "3", "3", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel",eventName),
+            new(4, "4", false, "4", "4", "4", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel",eventName)
         ];
 
         usersRepositoryMock = new Mock<UserRepository>();
@@ -38,9 +40,9 @@ public class SubscribersChangeProcessorTests
 
         monitoringEngine = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
 
-        subscribersChangeDetectorMock = new Mock<EventsMonitoringProcessor<ChannelMember>>();
-        subscribersChangeDetectorMock.Object.EntitiesJoined += monitoringEngine!.OnSubscribersJoined;
-        subscribersChangeDetectorMock.Object.EntitiesLeft += monitoringEngine!.OnSubscribersLeft;
+        eventsMonitoringProcessorMock = new Mock<IEventsMonitoringProcessor<ChannelMember>>();
+        eventsMonitoringProcessorMock.Object.EntitiesJoined += monitoringEngine!.OnSubscribersJoined;
+        eventsMonitoringProcessorMock.Object.EntitiesLeft += monitoringEngine!.OnSubscribersLeft;
     }
 
     [Test]
@@ -49,18 +51,19 @@ public class SubscribersChangeProcessorTests
         // Arrange
         var eventArgs = new EntitiesCollectionChangedEventArgs<ChannelMember>(
             differenceCount: 4,
-            entitiesDifference: allChannelMembers!);
+            entitiesDifference: allChannelMembers!,
+            "test-event");
 
         // Act
-        await subscribersChangeDetectorMock!.RaiseAsync(
+        await eventsMonitoringProcessorMock!.RaiseAsync(
             d => d.EntitiesJoined += null!,
-            subscribersChangeDetectorMock.Object,
+            eventsMonitoringProcessorMock.Object,
             eventArgs);
 
         // Assert
         usersRepositoryMock!.Verify(
             repo => repo.AddRange(It.Is<IEnumerable<ChannelMember>>(actual =>
-                actual.SequenceEqual(allChannelMembers!))),
+                actual.SequenceEqual(allChannelMembers!)), eventName),
             Times.Once()
         );
     }
@@ -71,12 +74,13 @@ public class SubscribersChangeProcessorTests
         // Arrange
         var eventArgs = new EntitiesCollectionChangedEventArgs<ChannelMember>(
             differenceCount: -4,
-            entitiesDifference: allChannelMembers!);
+            entitiesDifference: allChannelMembers!,
+            eventName);
 
         // Act
-        await subscribersChangeDetectorMock!.RaiseAsync(
+        await eventsMonitoringProcessorMock!.RaiseAsync(
             d => d.EntitiesLeft += null!,
-            subscribersChangeDetectorMock.Object,
+            eventsMonitoringProcessorMock.Object,
             eventArgs);
 
         // Assert

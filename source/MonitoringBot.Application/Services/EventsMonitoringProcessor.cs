@@ -1,4 +1,5 @@
-﻿using MonitoringBot.Application.Events;
+﻿using MonitoringBot.Application.Abstractions;
+using MonitoringBot.Application.Events;
 using MonitoringBot.Application.Queries.Events;
 using MonitoringBot.Application.Queries.Events.Arguments;
 using MonitoringBot.Domain.Events.ChannelMembers;
@@ -6,9 +7,9 @@ using MonitoringBot.Domain.Events.ChannelMembers;
 namespace MonitoringBot.Application.Services;
 
 public class EventsMonitoringProcessor<TEntity>(
-    GetEventsInPeriodQueryExecution<TEntity> getEventsInPeriodQueryExecution)
+    GetEventsInPeriodQueryExecution<TEntity> getEventsInPeriodQueryExecution) : IEventsMonitoringProcessor<TEntity>
 {
-    protected DateTime LastCheckTimeStamp;
+    protected DateTime lastCheckTimeStamp;
     public event Func<object?, EntitiesCollectionChangedEventArgs<TEntity>, Task>? EntitiesJoined;
     public event Func<object?, EntitiesCollectionChangedEventArgs<TEntity>, Task>? EntitiesLeft;
 
@@ -20,7 +21,7 @@ public class EventsMonitoringProcessor<TEntity>(
         var allEvents = await getEventsInPeriodQueryExecution.ExecuteAsync(
             new GetEventsInPeriodQuery
             {
-                From = LastCheckTimeStamp,
+                From = lastCheckTimeStamp,
                 To = DateTime.Now
             });
 
@@ -41,7 +42,8 @@ public class EventsMonitoringProcessor<TEntity>(
                 EntitiesLeft,
                 new EntitiesCollectionChangedEventArgs<TEntity>(
                     left.Count,
-                    left!));
+                    left!,
+                    nameof(SubscriberLeftEvent)));
         }
 
         if (HasValidItems(joined))
@@ -50,10 +52,11 @@ public class EventsMonitoringProcessor<TEntity>(
                 EntitiesJoined,
                 new EntitiesCollectionChangedEventArgs<TEntity>(
                     joined.Count,
-                    joined!));
+                    joined!,
+                    nameof(SubscriberJoinedEvent)));
         }
 
-        LastCheckTimeStamp = DateTime.Now;
+        lastCheckTimeStamp = DateTime.Now;
     }
 
     private async Task RaiseEntityCollectionChangedEvent(

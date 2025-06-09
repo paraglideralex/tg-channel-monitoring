@@ -9,6 +9,7 @@ public class ChannelMemberEntity
     public string? LastName { get; set; }
     public string? Phone { get; set; }
     public string? ChannelReference { get; set; }
+    public string? LastAction { get; set; }
     public DateTime? TimeStamp { get; set; }
-    public DateTime? JoinedAt { get; set; }
+    public DateTime? Created { get; set; }
 }

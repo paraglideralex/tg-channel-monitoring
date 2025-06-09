@@ -11,11 +11,14 @@ public sealed class ChannelMember : ISearchableEntity
     public string? LastName { get; init; }
     public string? Phone { get; init; }
     public string? ChannelReference { get; init; }
+    public string? LastAction { get; init; }
     public DateTime? TimeStamp { get; init; }
-    public DateTime? JoinedAt { get; init; }
+    public DateTime? Created { get; init; }
     public ChannelMember() { }
 
-    public ChannelMember(long id, string? nickName, bool isBot, string? firstName, string? lastName, string? phone, DateTime? timeStamp, DateTime? joinedAt, string channelReference)
+    public ChannelMember(long id, string? nickName, bool isBot, string? firstName, 
+        string? lastName, string? phone, DateTime? timeStamp, DateTime? joinedAt, 
+        string channelReference, string? lastAction)
     {
         Id = id;
         NickName = nickName;
@@ -24,8 +27,9 @@ public sealed class ChannelMember : ISearchableEntity
         LastName = lastName;
         Phone = phone;
         TimeStamp = timeStamp;
-        JoinedAt = joinedAt;
+        Created = joinedAt;
         ChannelReference = channelReference;
+        LastAction = lastAction;
     }
 
     public override bool Equals(object? obj) => obj is ChannelMember other && Id == other.Id;

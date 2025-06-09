@@ -214,6 +214,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         tgUser.phone,
         DateTime.Now,
         DateTime.Now,
-        channelReference
+        channelReference,
+        null
     );
 }

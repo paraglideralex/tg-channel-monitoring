@@ -4,40 +4,43 @@ using MonitoringBot.Infrastructure.Persistence;
 
 using System.Text.Json;
 
-namespace MonitoringBot.IntegrationTests;
+namespace MonitoringBot.CommonTestUtilities;
+
 public class EventsSequencesExamples
 {
-    private ChannelMemberEntity CreateChannelMemberEntity(int id, string channel) =>
+    private ChannelMemberEntity CreateChannelMemberEntity(int id, string channel, string? lastAction) =>
     new()
     {
         Id = 1,
         FirstName = $"{id}FirstName",
         LastName = $"{id}LastName",
         IsBot = false,
-        JoinedAt = new DateTime(2025, 10, 15),
+        Created = new DateTime(2025, 10, 15),
         NickName = $"{id}NickName",
         Phone = "79995553311",
         ChannelReference = $"{channel}",
-        TimeStamp = new DateTime(2025, 10, 15)
+        TimeStamp = new DateTime(2025, 10, 15),
+        LastAction = lastAction
     };
 
-    private ChannelMember CreateChannelMember(int id, string channel) =>
+    private ChannelMember CreateChannelMember(int id, string channel, string? lastAction) =>
     new()
     {
         Id = 1,
         FirstName = $"{id}FirstName",
         LastName = $"{id}LastName",
         IsBot = false,
-        JoinedAt = new DateTime(2025, 10, 15),
+        Created = new DateTime(2025, 10, 15),
         NickName = $"{id}NickName",
         Phone = "79995553311",
         ChannelReference = $"{channel}",
-        TimeStamp = new DateTime(2025, 10, 15)
+        TimeStamp = new DateTime(2025, 10, 15),
+        LastAction = lastAction
     };
 
-    private SubscriberJoinedEvent CreateJoinedDomainEvent(int id, string channel, DateTime timeStamp)
+    public SubscriberJoinedEvent CreateJoinedDomainEvent(int id, string channel, string lastAction, DateTime timeStamp)
     {
-        var userEntity = CreateChannelMember(id, channel);
+        var userEntity = CreateChannelMember(id, channel, lastAction);
         return new SubscriberJoinedEvent
         {
             Entity = userEntity,
@@ -49,9 +52,9 @@ public class EventsSequencesExamples
         };
     }
 
-    private SubscriberLeftEvent CreateLeftDomainEvent(int id, string channel, DateTime timeStamp)
+    public SubscriberLeftEvent CreateLeftDomainEvent(int id, string channel, string lastAction, DateTime timeStamp)
     {
-        var userEntity = CreateChannelMember(id, channel);
+        var userEntity = CreateChannelMember(id, channel, lastAction);
         return new SubscriberLeftEvent
         {
             Entity = userEntity,
@@ -63,9 +66,9 @@ public class EventsSequencesExamples
         };
     }
 
-    private EventEntity CreateJoinEvent(int id, string channel, DateTime timeStamp)
+    public EventEntity CreateJoinEvent(int id, string channel, string lastAction, DateTime timeStamp)
     {
-        var domainEvent = CreateJoinedDomainEvent(id, channel, timeStamp);
+        var domainEvent = CreateJoinedDomainEvent(id, channel, lastAction, timeStamp);
         var eventEntity = new EventEntity
         {
             EntityIdProjection = domainEvent.EntityIdProjection,
@@ -80,9 +83,9 @@ public class EventsSequencesExamples
         return eventEntity;
     }
 
-    private EventEntity CreateLeftEvent(int id, string channel, DateTime timeStamp)
+    public EventEntity CreateLeftEvent(int id, string channel, string lastAction, DateTime timeStamp)
     {
-        var domainEvent = CreateLeftDomainEvent(id, channel, timeStamp);
+        var domainEvent = CreateLeftDomainEvent(id, channel, lastAction, timeStamp);
         var eventEntity = new EventEntity
         {
             EntityIdProjection = domainEvent.EntityIdProjection,

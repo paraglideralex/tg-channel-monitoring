@@ -13,7 +13,7 @@ public class SubscribersChangeProcessor(
     public async Task OnSubscribersJoined(object? sender, EntitiesCollectionChangedEventArgs<ChannelMember> e)
     {
 
-        var result = await addSubscribersCommand.ExecuteAsync(e.EntitiesDifference);
+        var result = await addSubscribersCommand.ExecuteAsync(e);
         if (!result)
             Log.Error($"Ошибка обработки команды {nameof(OnSubscribersJoined)} сервиса {nameof(SubscribersChangeProcessor)}.");
     }
