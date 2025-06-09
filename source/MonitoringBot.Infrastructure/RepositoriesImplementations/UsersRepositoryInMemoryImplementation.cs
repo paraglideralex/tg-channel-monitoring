@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Infrastructure.Persistence;
 
 namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
@@ -118,7 +119,15 @@ public class UsersRepositoryInMemoryImplementation(
 
     public override async Task<List<ChannelMember>> TakeLast(int count = 5)
     {
-        var ordered = context.ChannelMembers.OrderByDescending(m => m.Created);
+        var ordered = context.ChannelMembers.OrderByDescending(m => m.TimeStamp);
+        var taken = ordered.Count() >= count ? ordered.Take(count) : ordered;
+        return await taken.Select(t => t.ToDomain()).ToListAsync();
+    }
+
+    public override async Task<List<ChannelMember>> TakeLastByAction(string lastAction, int count = 5)
+    {
+        var filtered = context.ChannelMembers.AsNoTracking().Where(cm => cm.LastAction == lastAction);
+        var ordered = filtered.OrderByDescending(m => m.TimeStamp);
         var taken = ordered.Count() >= count ? ordered.Take(count) : ordered;
         return await taken.Select(t => t.ToDomain()).ToListAsync();
     }
@@ -126,5 +135,12 @@ public class UsersRepositoryInMemoryImplementation(
     public override async Task<List<ChannelMember>> All()
     {
         return await context.ChannelMembers.Select(u => u.ToDomain()).ToListAsync();
+    }
+
+    public override async Task<List<ChannelMember>> AllSubscribed()
+    {
+        return await context.ChannelMembers
+            .Where(cm => cm.LastAction == nameof(SubscriberJoinedEvent))
+            .Select(u => u.ToDomain()).ToListAsync();
     }
 }

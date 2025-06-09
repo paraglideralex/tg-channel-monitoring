@@ -5,54 +5,18 @@ using Serilog;
 
 namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
-public class FetchUsersBackgroundService : IDisposable
+public class FetchUsersBackgroundService : FetchUsersBackgroundServiceBase
 {
-    private volatile List<ChannelMember> currentUsers = [];
-    private readonly TimeSpan updateInterval;
-    private readonly TelegramApiServiceBase telegramService;
-    private CancellationTokenSource cancellationTokenSource = new();
-
-    public FetchUsersBackgroundService(TelegramChannelService telegramService, TimeSpan updateInterval)
+    public FetchUsersBackgroundService(TelegramChannelService telegramService, TimeSpan updateInterval) : base(telegramService, updateInterval)
     {
-        this.telegramService = telegramService;
-        this.updateInterval = updateInterval;
     }
 
-    public async Task<bool> InitializeServiceAsync() => await telegramService.InitializeChannelAsync();
+    public override async Task<bool> InitializeServiceAsync() => await telegramService.InitializeChannelAsync();
 
-    public void Start() => _ = Task.Run(() => RunFetchLoopAsync(cancellationTokenSource.Token));
+    public override void Start() => _ = Task.Run(() => RunFetchLoopAsync(cancellationTokenSource.Token));
 
-    public void Stop() => cancellationTokenSource.Cancel();
+    public override void Stop() => cancellationTokenSource.Cancel();
 
-    public List<ChannelMember> GetSnapshot() => currentUsers;
-    public TelegramServiceState GetState() => telegramService.State;
-
-    public async Task LoginAsync() => await telegramService.LoginAsync();
-
-    private async Task RunFetchLoopAsync(CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            try
-            {
-                var users = await telegramService.GetChannelMembersAsync();
-
-                if (users is null)
-                    Log.Error("Импорт подписчиков канала не выполнен, подписчики в этот раз не получены из телеграм-канала.");
-                else
-                {
-                    currentUsers = users;
-                    Log.Debug($"Успешно загружен новый снапшот из {users.Count} участников канала.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Ошибка в сервисе фонового мониторинга подписчиков при получении пользователей из Telegram.");
-            }
-
-            await Task.Delay(updateInterval, cancellationToken);
-        }
-    }
-
-    public void Dispose() => telegramService?.Dispose();
+    public override List<ChannelMember> GetSnapshot() => currentUsers;
+    public override TelegramServiceState GetState() => telegramService.State;
 }

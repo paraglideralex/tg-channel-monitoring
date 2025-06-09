@@ -2,9 +2,8 @@
 using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Events;
 using MonitoringBot.Application.Services;
-using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
-using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Infrastructure;
 
 using Moq;
@@ -21,7 +20,7 @@ public class SubscribersChangeProcessorTests
     private Mock<IEventsMonitoringProcessor<ChannelMember>>? eventsMonitoringProcessorMock;
     private AddOrUpdateSubscribersCommand? addSubscribersCommand;
     private DeleteSubscribersCommand? deleteSubscribersCommand;
-    private const string eventName = "test-event";
+    private const string eventName = nameof(SubscriberJoinedEvent);
 
     [SetUp]
     public void SetUp()
@@ -41,8 +40,8 @@ public class SubscribersChangeProcessorTests
         monitoringEngine = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
 
         eventsMonitoringProcessorMock = new Mock<IEventsMonitoringProcessor<ChannelMember>>();
-        eventsMonitoringProcessorMock.Object.EntitiesJoined += monitoringEngine!.OnSubscribersJoined;
-        eventsMonitoringProcessorMock.Object.EntitiesLeft += monitoringEngine!.OnSubscribersLeft;
+        eventsMonitoringProcessorMock.Object.EntitiesJoined += monitoringEngine!.OnSubscribersQuantityChanged;
+        eventsMonitoringProcessorMock.Object.EntitiesLeft += monitoringEngine!.OnSubscribersQuantityChanged;
     }
 
     [Test]
@@ -52,7 +51,7 @@ public class SubscribersChangeProcessorTests
         var eventArgs = new EntitiesCollectionChangedEventArgs<ChannelMember>(
             differenceCount: 4,
             entitiesDifference: allChannelMembers!,
-            "test-event");
+            eventName);
 
         // Act
         await eventsMonitoringProcessorMock!.RaiseAsync(
@@ -77,6 +76,9 @@ public class SubscribersChangeProcessorTests
             entitiesDifference: allChannelMembers!,
             eventName);
 
+        usersRepositoryMock.Setup(x => x.FindByIds(It.IsAny<IEnumerable<long>>()))
+            .ReturnsAsync(allChannelMembers);
+
         // Act
         await eventsMonitoringProcessorMock!.RaiseAsync(
             d => d.EntitiesLeft += null!,
@@ -85,8 +87,8 @@ public class SubscribersChangeProcessorTests
 
         // Assert
         usersRepositoryMock!.Verify(
-            repo => repo.DeleteRange(It.Is<IEnumerable<ChannelMember>>(actual =>
-                actual.SequenceEqual(allChannelMembers!))),
+            repo => repo.UpdateRangeAsync(It.Is<IEnumerable<ChannelMember>>(actual =>
+                actual.SequenceEqual(allChannelMembers!)), eventName),
             Times.Once()
         );
     }

@@ -10,7 +10,7 @@ using Serilog;
 
 namespace MonitoringBot.Application.Services;
 
-public class SubscribersMonitoringService(FetchUsersBackgroundService fetchUsersBackgroundService,
+public class SubscribersMonitoringService(FetchUsersBackgroundServiceBase fetchUsersBackgroundService,
     GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery,
     EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> entityChangeDetector,
     AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand,

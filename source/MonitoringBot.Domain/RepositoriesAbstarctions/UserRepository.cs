@@ -8,6 +8,7 @@ public abstract class UserRepository
 
     public abstract Task<List<long>> Keys();
     public abstract Task<List<ChannelMember>> All();
+    public abstract Task<List<ChannelMember>> AllSubscribed();
 
     public abstract Task AddAsync(ChannelMember user, string? lastAction);
 
@@ -23,4 +24,5 @@ public abstract class UserRepository
     public abstract Task<List<ChannelMember>> FindByIds(IEnumerable<long> identities);
 
     public abstract Task<List<ChannelMember>> TakeLast(int count = 5);
+    public abstract Task<List<ChannelMember>> TakeLastByAction(string lastAction, int count = 5);
 }

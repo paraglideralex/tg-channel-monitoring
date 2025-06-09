@@ -2,12 +2,16 @@
 
 using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Queries.Events;
+using MonitoringBot.Application.Queries.Projections;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure.Persistence;
 using MonitoringBot.Infrastructure.RepositoriesImplementations;
+using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
+
+using Moq;
 
 using NUnit.Framework;
 
@@ -28,6 +32,9 @@ public class ChangeDetectorSubscribersTests
     private AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand;
     private EventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor;
     private const string lastActionBase = "base-action";
+    private SubscribersMonitoringService subscribersMonitoringService;
+    private Mock<FetchUsersBackgroundServiceBase> fetchUsersBackgroundServiceMock;
+    private GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
 
     [SetUp]
     public void SetUp()
@@ -58,8 +65,19 @@ public class ChangeDetectorSubscribersTests
 
         subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
         eventsMonitoringProcessor = new EventsMonitoringProcessor<ChannelMember>(getEventsInPeriodQueryExecution);
-        eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor!.OnSubscribersJoined;
-        eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersLeft;
+        eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor!.OnSubscribersQuantityChanged;
+        eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersQuantityChanged;
+
+        fetchUsersBackgroundServiceMock = new Mock<FetchUsersBackgroundServiceBase>();
+        getAllCurrentSubscribersQuery = new(usersRepository);
+
+        subscribersMonitoringService = new(
+            fetchUsersBackgroundServiceMock.Object,
+            getAllCurrentSubscribersQuery,
+            subscribersChangeDetector,
+            addEventsCommand,
+            eventsMonitoringProcessor,
+            "test-channel");
     }
 
     [TearDown]
@@ -75,59 +93,97 @@ public class ChangeDetectorSubscribersTests
     }
 
     [Test]
-    public async Task BasicAddition_Success()
+    public async Task JoinedOneNew_Success()
     {
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![0], allChannelMembers[1] };
-        await usersRepository!.AddAsync(allChannelMembers![0], null);
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
+        await usersRepository!.AddAsync(allChannelMembers![0], nameof(SubscriberJoinedEvent));
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
-        var addResult = await addEventsCommand.ExecuteAsync(result);
-
-        await eventsMonitoringProcessor.ExecuteMonitoringAsync();
+        await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
         Assert.That(databaseMembers, Is.EquivalentTo(fromApi));
+
+        var events = dbContext!.Events.ToList();
+        Assert.That(events.Count, Is.EqualTo(1));
+        Assert.That(events[0].EntityIdProjection, Is.EqualTo(allChannelMembers[1].Id.ToString()));
+        Assert.That(events[0].EventType, Is.EqualTo(nameof(SubscriberJoinedEvent)));
     }
 
     [Test]
-    public async Task Deletion_Success()
+    public async Task JoinedOneOld_Success()
+    {
+        // Arrange
+        var fromApi = new List<ChannelMember> { allChannelMembers![1] };
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
+        await usersRepository!.AddAsync(allChannelMembers![1], nameof(SubscriberLeftEvent));
+
+        // Act
+        await subscribersMonitoringService.ProcessMonitoringAsync();
+
+        // Assert
+        var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
+        var events = dbContext!.Events.ToList();
+
+        Assert.That(databaseMembers, Is.EquivalentTo(fromApi));
+        Assert.That(events.Count, Is.EqualTo(1));
+        Assert.That(events[0].EntityIdProjection, Is.EqualTo(allChannelMembers[1].Id.ToString()));
+        Assert.That(events[0].EventType, Is.EqualTo(nameof(SubscriberJoinedEvent)));
+    }
+
+    [Test]
+    public async Task OneLeft_Success()
     {
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![0] };
-        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]], null);
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
+        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]], nameof(SubscriberJoinedEvent));
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
-        var addResult = await addEventsCommand.ExecuteAsync(result);
-
-        await eventsMonitoringProcessor.ExecuteMonitoringAsync();
-
-        // Assert
-        var databaseMembers = dbContext!.ChannelMembers.ToList();
-
-        Assert.That(databaseMembers.Count, Is.EqualTo(1));
-        Assert.That(databaseMembers[0].Id, Is.EqualTo(allChannelMembers![0].Id));
-    }
-
-    [Test]
-    public async Task Combined_Success()
-    {
-        // Arrange
-        var fromApi = new List<ChannelMember> { allChannelMembers![1], allChannelMembers![2] };
-        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]], null);
-
-        // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
-        var addResult = await addEventsCommand.ExecuteAsync(result);
-
-        await eventsMonitoringProcessor.ExecuteMonitoringAsync();
+        await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
-        Assert.That(databaseMembers, Is.EquivalentTo(fromApi));
+        var events = dbContext!.Events.ToList();
+
+        Assert.That(databaseMembers, Is.EquivalentTo(allChannelMembers[0..2]));
+        Assert.That(events.Count, Is.EqualTo(1));
+        Assert.That(events[0].EntityIdProjection, Is.EqualTo(allChannelMembers[1].Id.ToString()));
+        Assert.That(events[0].EventType, Is.EqualTo(nameof(SubscriberLeftEvent)));
+    }
+
+    /// <summary>
+    /// Исходно были 0 и 1. За один цикл номер 0 ушёл, а номер 2 пришёл.
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task OneJoinedOneLeft_Success()
+    {
+        // Arrange
+        var fromApi = new List<ChannelMember> { allChannelMembers![1], allChannelMembers![2] };
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
+        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]], nameof(SubscriberJoinedEvent));
+
+        // Act
+        await subscribersMonitoringService.ProcessMonitoringAsync();
+
+        // Assert
+        var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
+        var events = dbContext!.Events.ToList();
+
+        Assert.That(databaseMembers, Is.EquivalentTo(allChannelMembers[0 .. 3]));
+        Assert.That(events.Count, Is.EqualTo(2));
+
+        Assert.That(events, Has.Some.Matches<EventEntity>(e => 
+            e.EntityIdProjection == allChannelMembers[2].Id.ToString() && 
+            e.EventType == nameof(SubscriberJoinedEvent)));
+
+        Assert.That(events, Has.Some.Matches<EventEntity>(e => 
+            e.EntityIdProjection == allChannelMembers[0].Id.ToString() && 
+            e.EventType == nameof(SubscriberLeftEvent)));
     }
 
     [Test]
@@ -135,18 +191,17 @@ public class ChangeDetectorSubscribersTests
     {
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![1], allChannelMembers![2] };
-        await usersRepository!.AddRange([allChannelMembers![1], allChannelMembers[2]], null);
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
+        await usersRepository!.AddRange([allChannelMembers![1], allChannelMembers[2]], nameof(SubscriberJoinedEvent));
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, await usersRepository.All(), "test");
-
-        var addResult = await addEventsCommand.ExecuteAsync(result);
-
-        await eventsMonitoringProcessor.ExecuteMonitoringAsync();
+        await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // Assert
         var databaseMembers = dbContext!.ChannelMembers.Select(x => x.ToDomain()).ToList();
+        var events = dbContext!.Events.ToList();
 
         Assert.That(databaseMembers, Is.EquivalentTo(fromApi));
+        Assert.That(events.Count, Is.EqualTo(0));
     }
 }

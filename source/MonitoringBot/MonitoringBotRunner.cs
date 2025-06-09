@@ -93,6 +93,8 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                 {
                     "/info" => messageBuilder.Info(channelReference),
                     "/last" => await messageBuilder.Last(),
+                    "/last_subscribed" => await messageBuilder.LastSubscribed(),
+                    "/last_unsubscribed" => await messageBuilder.LastUnsubscribed(),
                     "/change_period" => "будет менять период мониторинга",
                     "/check" => await messageBuilder.CheckDiagnostics(
                                       checkPeriodSeconds, 
@@ -158,8 +160,8 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
 
         fetchUsersBackgroundService.Start();
 
-        eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor.OnSubscribersJoined;
-        eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor.OnSubscribersLeft;
+        eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor.OnSubscribersQuantityChanged;
+        eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor.OnSubscribersQuantityChanged;
 
         eventsMonitoringProcessor.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
         eventsMonitoringProcessor.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
