@@ -1,17 +1,30 @@
-# Channel members monitoring telegram-bot
+# Channel members monitoring Telegram-bot
 
-This solution provides a mechanism for monitoring changes in the composition of entities anywhere. It can be adapted to work with collections of any type and integrated into any infrastructure. The implementation is done in the context of a Telegram bot that tracks the subscribers of a specified Telegram channel, notifies about changes (user subscriptions or unsubscriptions), and provides statistical and historical data about subscribers and all related events, thanks to the Event Sourcing approach.
+This solution provides a mechanism for monitoring changes in the composition of entities anywhere. It can be adapted to work with collections of any type and integrated into any infrastructure. 
+
+## Implementation Overview:
+This solution is designed as a Telegram bot that:
+- Monitors subscribers of a specified Telegram channel
+- Detects and notifies about subscription changes (new joins or exits)
+- Provides statistical and historical data on subscribers and related events
+- Leverages Event Sourcing to maintain a complete audit trail of all changes
 
 Thus, the bot’s core performs two main tasks:
 
 1. Monitors and broadcasts notifications about changes in the subscriber list.
 2. Processes user requests.
 
+## Key Features
+
+- Real-time tracking of channel membership changes
+- Event-driven architecture with full history preservation
+- Subscription analytics and historical event logging
+
 ## High-level Architecture
 
 The **Domain** layer is conceptually represented as a mechanism for generating events based on changes in entity composition (additions or removals).
 
-**Infrastructure** of the application depends on the Telegram API, provided by [WTelegramClient]("https://wiz0u.github.io/WTelegramClient/"). The interaction with the API is handled by an infrastructure background service that periodically requests the subscriber list. 
+**Infrastructure** of the application depends on the Telegram API, provided by [WTelegramClient](https://wiz0u.github.io/WTelegramClient/). The interaction with the API is handled by an infrastructure background service that periodically requests the subscriber list. 
 
 The database consists of:
 - event store,
@@ -22,7 +35,7 @@ Data access is implemented via repositories.
 
 The **Application** layer is responsible for processing domain events, executing pure commands and queries, as well as part of the bot’s core monitoring logic.
 
-The **Presentation** layer contains the bot’s core logic and the mechanism for generating user-facing messages. Bot API is provided by [Telegram.BotAPI for .NET]("https://github.com/Eptagone/Telegram.BotAPI").
+The **Presentation** layer contains the bot’s core logic and the mechanism for generating user-facing messages. Bot API is provided by [Telegram.BotAPI for .NET](https://github.com/Eptagone/Telegram.BotAPI).
 
 ## Subscriber Change Processing Flow
 
@@ -174,9 +187,9 @@ Next, fill in your own data in the _appsettings.json_ file located in the _sourc
 }
 ```
 
-Fill the TelegramApi section according to the data obtained from the [official guide]("https://core.telegram.org/api/obtaining_api_id").
+Fill the TelegramApi section according to the data obtained from the [official guide](https://core.telegram.org/api/obtaining_api_id).
 
-The bot token is obtained when creating a bot via [BotFather]("https://telegram.me/botfather").
+The bot token is obtained when creating a bot via [BotFather](https://telegram.me/botfather).
 
 To launch the bot, run the following command in the _path/to/project/source/MonitoringBot/_ directory:
 
