@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\CommonTestsUtilities\CommonTestsUtilities.csproj" />
+    <ProjectReference Include="..\..\tests\CommonTestsUtilities\CommonTestsUtilities.csproj" />
     <ProjectReference Include="..\..\source\MonitoringBot.Application\MonitoringBot.Application.csproj" />
     <ProjectReference Include="..\..\source\MonitoringBot.Infrastructure\MonitoringBot.Infrastructure.csproj" />
     <ProjectReference Include="..\..\source\MonitoringBot.Domain\MonitoringBot.Domain.csproj" />
