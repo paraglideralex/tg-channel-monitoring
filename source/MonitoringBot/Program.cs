@@ -56,13 +56,12 @@ var getAllQuery = new GetAllCurrentSubscribersQuery(userRepository);
 var addUserCommand = new AddOrUpdateSubscribersCommand(userRepository);
 var deleteUserCommand = new DeleteSubscribersCommand(userRepository);
 
-var monitoringProcessor = new SubscribersChangeProcessor(addUserCommand, deleteUserCommand);
+var monitoringProcessor = new SubscribersChangeProcessor(addUserCommand);
 var monitoringPresentation = new MonitoringPresentation(messageBuilder);
 
-var subscribersChangeMessagingService = new SubscribersChangeMessageService(
+var subscribersChangeMessagingService = new EntitiesChangeMessagingService<ChannelMember>(
     client,
-    settingsBuilder.TelegramBotSettings.ChatIdsCollection,
-    monitoringPresentation);
+    settingsBuilder.TelegramBotSettings.ChatIdsCollection);
 
 var eventRepository = new EventsRepositoryImplementation<ChannelMember>(dbContext);
 
@@ -80,6 +79,8 @@ var monitoringService = new SubscribersMonitoringService(
     eventsProcessor,
     settingsBuilder.TelegramApiSettings.ChannelReferenceLink);
 
+var messageProducer = new SubscribersChangeMessageProducer(monitoringPresentation);
+
 var monitoringBotRunner = new MonitoringBotRunner<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(
     getAllQuery,
     subscribersChangeMessagingService,
@@ -92,7 +93,8 @@ var monitoringBotRunner = new MonitoringBotRunner<ChannelMember, SubscriberJoine
     settingsBuilder.TelegramBotSettings.CheckPeriodSeconds,
     settingsBuilder.TelegramApiSettings.ChannelReferenceLink,
     eventsProcessor,
-    monitoringService);
+    monitoringService,
+    messageProducer);
 
 await monitoringBotRunner.InitializeAsync();
 await monitoringBotRunner.MainLoopAsync();

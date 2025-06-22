@@ -7,8 +7,7 @@ using Serilog;
 namespace MonitoringBot.Application.Services;
 
 public class SubscribersChangeProcessor(
-    AddOrUpdateSubscribersCommand addSubscribersCommand,
-    DeleteSubscribersCommand deleteSubscribersCommand)
+    AddOrUpdateSubscribersCommand addSubscribersCommand)
 {
     public async Task OnSubscribersQuantityChanged(object? sender, EntitiesCollectionChangedEventArgs<ChannelMember> e)
     {
@@ -17,11 +16,4 @@ public class SubscribersChangeProcessor(
         if (!result)
             Log.Error($"Ошибка обработки команды {nameof(OnSubscribersQuantityChanged)} сервиса {nameof(SubscribersChangeProcessor)}.");
     }
-
-    //public async Task OnSubscribersLeft(object? sender, EntitiesCollectionChangedEventArgs<ChannelMember> e)
-    //{
-    //    var result = await deleteSubscribersCommand.ExecuteAsync(e.EntitiesDifference);
-    //    if (!result)
-    //        Log.Error($"Ошибка обработки команды {nameof(OnSubscribersLeft)} сервиса {nameof(SubscribersChangeProcessor)}.");
-    //}
 }

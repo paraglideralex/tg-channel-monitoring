@@ -21,6 +21,7 @@ public abstract class UserRepository
 
     public abstract Task DeleteRange(IEnumerable<ChannelMember> users);
 
+    public abstract Task<ChannelMember?> FindById(long identity);
     public abstract Task<List<ChannelMember>> FindByIds(IEnumerable<long> identities);
 
     public abstract Task<List<ChannelMember>> TakeLast(int count = 5);

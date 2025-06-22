@@ -19,7 +19,6 @@ public class SubscribersChangeProcessorTests
     private List<ChannelMember>? allChannelMembers;
     private Mock<IEventsMonitoringProcessor<ChannelMember>>? eventsMonitoringProcessorMock;
     private AddOrUpdateSubscribersCommand? addSubscribersCommand;
-    private DeleteSubscribersCommand? deleteSubscribersCommand;
     private const string eventName = nameof(SubscriberJoinedEvent);
 
     [SetUp]
@@ -35,9 +34,8 @@ public class SubscribersChangeProcessorTests
 
         usersRepositoryMock = new Mock<UserRepository>();
         addSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepositoryMock.Object);
-        deleteSubscribersCommand = new DeleteSubscribersCommand(usersRepositoryMock.Object);
 
-        monitoringEngine = new SubscribersChangeProcessor(addSubscribersCommand, deleteSubscribersCommand);
+        monitoringEngine = new SubscribersChangeProcessor(addSubscribersCommand);
 
         eventsMonitoringProcessorMock = new Mock<IEventsMonitoringProcessor<ChannelMember>>();
         eventsMonitoringProcessorMock.Object.EntitiesJoined += monitoringEngine!.OnSubscribersQuantityChanged;

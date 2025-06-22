@@ -32,6 +32,8 @@ public sealed class ChannelMember : ISearchableEntity
         LastAction = lastAction;
     }
 
+    public override string ToString() => $"{Id}_{NickName}_{FirstName}_{LastName}_{LastAction}_{TimeStamp.ToString()}_{Created.ToString()}";
+
     public override bool Equals(object? obj) => obj is ChannelMember other && Id == other.Id;
     public override int GetHashCode() => Id.GetHashCode();
 

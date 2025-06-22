@@ -31,7 +31,8 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         int checkPeriodSeconds,
         string channelReference,
         IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor,
-        IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService)
+        IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService,
+        EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer)
     {
         this.getAllCurrentSubscribersQuery = getAllCurrentSubscribersQuery;
         this.messagesSendingService = messagesSendingService;
@@ -45,6 +46,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         this.channelReference = channelReference;
         this.eventsMonitoringProcessor = eventsMonitoringProcessor;
         this.monitoringService = monitoringService;
+        this.entitiesChangeMessageProducer = entitiesChangeMessageProducer;
     }
 
     private readonly GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
@@ -58,6 +60,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     private readonly string channelReference;
     private readonly IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor;
     private readonly IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService;
+    private readonly EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer;
 
     private int checkPeriodSeconds;
     private DateTime basicTimeStamp;
@@ -164,8 +167,13 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor.OnSubscribersQuantityChanged;
         eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor.OnSubscribersQuantityChanged;
 
-        eventsMonitoringProcessor.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
-        eventsMonitoringProcessor.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
+        eventsMonitoringProcessor.EntitiesJoined += entitiesChangeMessageProducer.OnEntitiesJoined;
+        eventsMonitoringProcessor.EntitiesLeft += entitiesChangeMessageProducer.OnEntitiesLeft;
+
+        entitiesChangeMessageProducer.MessageProduced += messagesSendingService.OnMessageProduced;
+
+        //eventsMonitoringProcessor.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
+        //eventsMonitoringProcessor.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
 
         await messagesSendingService.TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");

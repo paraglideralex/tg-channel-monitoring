@@ -4,24 +4,24 @@ namespace MonitoringBot.Presentation;
 
 public class MonitoringPresentation(MessageBuilder messageBuilder)
 {
-    public string FormatJoinedUsers(IEnumerable<ChannelMember> usersDifference)
+    public string FormatJoinedUsers(IEnumerable<ChannelMember> usersDifference, string eventType)
     {
         string message = "Ура, новые подпищщики!🍾🎊🎈\r\n\r\n";
-        message += FormatOneOrManyMembers(usersDifference);
+        message += FormatOneOrManyMembers(usersDifference, eventType);
         return message;
     }
 
-    public string FormatLeftUsers(IEnumerable<ChannelMember> usersDifference)
+    public string FormatLeftUsers(IEnumerable<ChannelMember> usersDifference, string eventType)
     {
         string message = "Неееет! От нас свалили!👎💩🐀\r\n\r\n";
-        message += FormatOneOrManyMembers(usersDifference);
+        message += FormatOneOrManyMembers(usersDifference, eventType);
         return message;
     }
 
-    public string FormatOneOrManyMembers(IEnumerable<ChannelMember> usersDifference)
+    public async Task<string> FormatOneOrManyMembers(IEnumerable<ChannelMember> usersDifference, string eventType)
     {
         return usersDifference.Count() == 1
-                    ? messageBuilder.FormatMember(usersDifference.FirstOrDefault() ?? new ChannelMember())
-                    : messageBuilder.FormatMembers(usersDifference);
+                    ? await messageBuilder.FormatMemberAsync(usersDifference.FirstOrDefault() ?? new ChannelMember(), eventType)
+                    : await messageBuilder.FormatMembersAsync(usersDifference, eventType);
     }
 }

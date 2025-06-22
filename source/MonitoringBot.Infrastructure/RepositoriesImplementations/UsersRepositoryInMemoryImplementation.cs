@@ -108,6 +108,15 @@ public class UsersRepositoryInMemoryImplementation(
         return await context.ChannelMembers.Select(u => u.Id).ToListAsync();
     }
 
+    public override async Task<ChannelMember?> FindById(long identity)
+    {
+        var entity = await context.ChannelMembers
+            .Where(u => u.Id == identity)
+            .FirstOrDefaultAsync();
+
+        return entity?.ToDomain();
+    }
+
     public override async Task<List<ChannelMember>> FindByIds(IEnumerable<long> identities)
     {
         var entities = await context.ChannelMembers

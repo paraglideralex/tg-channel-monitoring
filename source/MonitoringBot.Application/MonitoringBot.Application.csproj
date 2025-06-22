@@ -16,8 +16,4 @@
     <ProjectReference Include="..\MonitoringBot.Domain\MonitoringBot.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Events\" />
-  </ItemGroup>
-
 </Project>

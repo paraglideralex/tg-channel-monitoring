@@ -17,7 +17,7 @@ using NUnit.Framework;
 
 namespace MonitoringBot.IntegrationTests;
 
-public class ChangeDetectorSubscribersTests
+public class ChangeDetectorSubscribersTestsMain
 {
     private DbContextOptions<MonitoringBotDbContextInMemory> options;
     private UsersRepositoryInMemoryImplementation? usersRepository;
@@ -36,7 +36,7 @@ public class ChangeDetectorSubscribersTests
     private GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
 
     [SetUp]
-    public virtual void SetUp()
+    public void SetUp()
     {
         allChannelMembers =
         [
