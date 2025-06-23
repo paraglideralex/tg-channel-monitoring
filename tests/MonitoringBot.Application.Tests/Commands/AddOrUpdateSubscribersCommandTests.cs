@@ -1,6 +1,7 @@
 ﻿using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Events;
 using MonitoringBot.CommonTestUtilities;
+using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure;
 
@@ -18,6 +19,7 @@ public class AddOrUpdateSubscribersCommandTests
     private EventsSequencesExamples eventsSequencesExamples = new();
     private const string baseEventType = "test-base";
     private List<ChannelMember> baseChannelMembers;
+    private Mock<ITimeProvider> timeProviderMock;
 
     [SetUp]
     public void SetUp()
@@ -26,7 +28,10 @@ public class AddOrUpdateSubscribersCommandTests
         usersRepositoryMock = new Mock<UserRepository>();
         usersRepositoryMock.Setup(x => x.FindByIds(It.IsAny<IEnumerable<long>>()))
             .ReturnsAsync([]);
-        addSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepositoryMock.Object);
+
+        timeProviderMock = new Mock<ITimeProvider>();
+        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
+        addSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepositoryMock.Object, timeProviderMock.Object);
     }
 
     [Test]
@@ -42,7 +47,7 @@ public class AddOrUpdateSubscribersCommandTests
 
         Assert.That(result, Is.True);
         usersRepositoryMock!.Verify(
-            x => x.AddRange(It.Is<IEnumerable<ChannelMember>>(a => a.SequenceEqual(users)), baseEventType),
+            x => x.AddRangeAsync(It.Is<IEnumerable<ChannelMember>>(a => a.SequenceEqual(users)), baseEventType),
             Times.Once());
     }
 
@@ -68,10 +73,10 @@ public class AddOrUpdateSubscribersCommandTests
 
         Assert.That(result, Is.True);
         usersRepositoryMock!.Verify(
-            x => x.AddRange(It.Is<IEnumerable<ChannelMember>>(a => a.SequenceEqual(new List<ChannelMember> { addUser })), baseEventType),
+            x => x.AddRangeAsync(It.Is<IEnumerable<ChannelMember>>(a => a.SequenceEqual(new List<ChannelMember> { addUser })), baseEventType),
             Times.Once());
         usersRepositoryMock!.Verify(
-            x => x.UpdateRangeAsync(It.Is<IEnumerable<ChannelMember>>(a => a.SequenceEqual(new List<ChannelMember> { updateUser })), baseEventType),
+            x => x.UpdateRangeAsync(It.Is<IEnumerable<ChannelMember>>(a => a.SequenceEqual(new List<ChannelMember> { updateUser })), baseEventType, It.IsAny<DateTime>()),
             Times.Once());
     }
 
@@ -91,7 +96,7 @@ public class AddOrUpdateSubscribersCommandTests
 
         Assert.That(result, Is.True);
         usersRepositoryMock!.Verify(
-            x => x.AddRange(It.Is<IEnumerable<ChannelMember>>(a => a.SequenceEqual(users)), baseEventType),
+            x => x.AddRangeAsync(It.Is<IEnumerable<ChannelMember>>(a => a.SequenceEqual(users)), baseEventType),
             Times.Once());
     }
 
@@ -133,7 +138,7 @@ public class AddOrUpdateSubscribersCommandTests
         ],
         "test-joined");
 
-        usersRepositoryMock!.Setup(x => x.AddRange(It.IsAny<IEnumerable<ChannelMember>>(), It.IsAny<string>()))
+        usersRepositoryMock!.Setup(x => x.AddRangeAsync(It.IsAny<IEnumerable<ChannelMember>>(), It.IsAny<string>()))
             .Throws(new Exception("exception"));
         var result = await addSubscribersCommand!.ExecuteAsync(args);
 

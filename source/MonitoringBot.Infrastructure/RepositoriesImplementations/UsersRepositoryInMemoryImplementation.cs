@@ -11,7 +11,8 @@ public class UsersRepositoryInMemoryImplementation(
 {
     public override async Task AddAsync(ChannelMember user, string? lastAction)
     {
-        var exists = await context.ChannelMembers.AnyAsync(u => u.Id == user.Id);
+        var exists = await context.ChannelMembers
+            .AnyAsync(u => u.Id == user.Id);
         if (!exists)
         {
             context.ChannelMembers.Add(user.ToEntity(lastAction));
@@ -19,9 +20,12 @@ public class UsersRepositoryInMemoryImplementation(
         }
     }
 
-    public override async Task AddRange(IEnumerable<ChannelMember> users, string? lastAction)
+    public override async Task AddRangeAsync(IEnumerable<ChannelMember> users, string? lastAction)
     {
-        var existingIds = await context.ChannelMembers.Select(u => u.Id).ToListAsync();
+        var existingIds = await context.ChannelMembers
+            .Select(u => u.Id)
+            .ToListAsync();
+
         var newUsers = users.Where(u => !existingIds.Contains(u.Id)).ToList();
 
         if (newUsers.Count != 0)
@@ -32,7 +36,7 @@ public class UsersRepositoryInMemoryImplementation(
         }
     }
 
-    public override async Task UpdateAsync(ChannelMember user, string? lastAction)
+    public override async Task UpdateAsync(ChannelMember user, string? lastAction, DateTime timeStamp)
     {
         var existing = await context.ChannelMembers.FindAsync(user.Id);
 
@@ -46,12 +50,12 @@ public class UsersRepositoryInMemoryImplementation(
         existing.Phone = user.Phone;
         existing.ChannelReference = user.ChannelReference;
         existing.LastAction = lastAction;
-        existing.TimeStamp = DateTime.Now;
+        existing.TimeStamp = timeStamp;
 
         await context.SaveChangesAsync();
     }
 
-    public override async Task UpdateRangeAsync(IEnumerable<ChannelMember> users, string? lastAction)
+    public override async Task UpdateRangeAsync(IEnumerable<ChannelMember> users, string? lastAction, DateTime timeStamp)
     {
         var userIds = users.Select(e => e.Id).ToList();
 
@@ -70,13 +74,13 @@ public class UsersRepositoryInMemoryImplementation(
             existing.Phone = updated.Phone;
             existing.ChannelReference = updated.ChannelReference;
             existing.LastAction = lastAction;
-            existing.TimeStamp = DateTime.Now;
+            existing.TimeStamp = timeStamp;
         }
 
         await context.SaveChangesAsync();
     }
 
-    public override async Task Delete(ChannelMember user)
+    public override async Task DeleteAsync(ChannelMember user)
     {
         var entity = await context.ChannelMembers.FindAsync(user.Id);
         if (entity != null)
@@ -86,7 +90,7 @@ public class UsersRepositoryInMemoryImplementation(
         }
     }
 
-    public override async Task DeleteRange(IEnumerable<ChannelMember> users)
+    public override async Task DeleteRangeAsync(IEnumerable<ChannelMember> users)
     {
         var ids = users.Select(u => u.Id).ToList();
         var entities = await context.ChannelMembers.Where(u => ids.Contains(u.Id)).ToListAsync();
@@ -100,7 +104,17 @@ public class UsersRepositoryInMemoryImplementation(
 
     public override async Task<long> CountAsync()
     {
-        return await context.ChannelMembers.LongCountAsync();
+        return await context.ChannelMembers
+            .AsNoTracking()
+            .LongCountAsync();
+    }
+
+    public override async Task<long> CountByLastActionAsync(string lastAction)
+    {
+        return await context.ChannelMembers
+            .AsNoTracking()
+            .Where(x => x.LastAction == lastAction)
+            .LongCountAsync();
     }
 
     public override async Task<List<long>> Keys()
@@ -111,6 +125,7 @@ public class UsersRepositoryInMemoryImplementation(
     public override async Task<ChannelMember?> FindById(long identity)
     {
         var entity = await context.ChannelMembers
+            .AsNoTracking()
             .Where(u => u.Id == identity)
             .FirstOrDefaultAsync();
 
@@ -120,6 +135,7 @@ public class UsersRepositoryInMemoryImplementation(
     public override async Task<List<ChannelMember>> FindByIds(IEnumerable<long> identities)
     {
         var entities = await context.ChannelMembers
+            .AsNoTracking()
             .Where(u => identities.Contains(u.Id))
             .ToListAsync();
 
@@ -128,14 +144,20 @@ public class UsersRepositoryInMemoryImplementation(
 
     public override async Task<List<ChannelMember>> TakeLast(int count = 5)
     {
-        var ordered = context.ChannelMembers.OrderByDescending(m => m.TimeStamp);
+        var ordered = context.ChannelMembers
+            .AsNoTracking()
+            .OrderByDescending(m => m.TimeStamp);
+
         var taken = ordered.Count() >= count ? ordered.Take(count) : ordered;
         return await taken.Select(t => t.ToDomain()).ToListAsync();
     }
 
     public override async Task<List<ChannelMember>> TakeLastByAction(string lastAction, int count = 5)
     {
-        var filtered = context.ChannelMembers.AsNoTracking().Where(cm => cm.LastAction == lastAction);
+        var filtered = context.ChannelMembers
+            .AsNoTracking()
+            .Where(cm => cm.LastAction == lastAction);
+
         var ordered = filtered.OrderByDescending(m => m.TimeStamp);
         var taken = ordered.Count() >= count ? ordered.Take(count) : ordered;
         return await taken.Select(t => t.ToDomain()).ToListAsync();
@@ -143,12 +165,15 @@ public class UsersRepositoryInMemoryImplementation(
 
     public override async Task<List<ChannelMember>> All()
     {
-        return await context.ChannelMembers.Select(u => u.ToDomain()).ToListAsync();
+        return await context.ChannelMembers
+            .AsNoTracking()
+            .Select(u => u.ToDomain()).ToListAsync();
     }
 
     public override async Task<List<ChannelMember>> AllSubscribed()
     {
         return await context.ChannelMembers
+            .AsNoTracking()
             .Where(cm => cm.LastAction == nameof(SubscriberJoinedEvent))
             .Select(u => u.ToDomain()).ToListAsync();
     }

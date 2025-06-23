@@ -3,7 +3,8 @@ using MonitoringBot.Domain.Events;
 
 namespace MonitoringBot.Domain.Services;
 
-public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArgs>
+public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArgs>(
+    ITimeProvider timeProvider)
     : IEntitiesChangeDetector<TEntity>
     where TEntity : ISearchableEntity
     where TOnJoinedEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
@@ -33,7 +34,8 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
                 Entity = j,
                 EntityIdProjection = j.IdProjection(),
                 EntityNameProjection = j.NameProjection(),
-                ChannelName = aggregateName
+                ChannelName = aggregateName,
+                TimeStamp = timeProvider.Now
             }));
 
             events.AddRange(left.Select(l => new TOnLeftEventArgs
@@ -41,7 +43,8 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
                 Entity = l,
                 EntityIdProjection = l.IdProjection(),
                 EntityNameProjection = l.NameProjection(),
-                ChannelName = aggregateName
+                ChannelName = aggregateName,
+                TimeStamp = timeProvider.Now
             }));
 
             return events;

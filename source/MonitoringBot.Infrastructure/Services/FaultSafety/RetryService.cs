@@ -1,12 +1,7 @@
 ﻿using Serilog;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace MonitoringBot.Infrastructure.Services.FaultSafety;
+
 public class RetryService : RetryServiceBase
 {
     private readonly DelayIncreaseCalculator delayIncreaseCalculator = new();

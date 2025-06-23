@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Application.Events;
+using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
 using MonitoringBot.Infrastructure;
@@ -8,7 +9,9 @@ using Serilog;
 
 namespace MonitoringBot.Application.Commands;
 
-public sealed class AddOrUpdateSubscribersCommand(UserRepository userRepository) 
+public sealed class AddOrUpdateSubscribersCommand(
+    UserRepository userRepository,
+    ITimeProvider timeProvider) 
     : BaseCommand<EntitiesCollectionChangedEventArgs<ChannelMember>>
 {
     protected override bool Validate(EntitiesCollectionChangedEventArgs<ChannelMember> eventArgs)
@@ -25,12 +28,12 @@ public sealed class AddOrUpdateSubscribersCommand(UserRepository userRepository)
 
         if(existingMembers is not null && existingMembers.Count != 0)
         {
-            await userRepository.UpdateRangeAsync(existingMembers, arguments.EventType);
+            await userRepository.UpdateRangeAsync(existingMembers, arguments.EventType, timeProvider.Now);
             Log.Information($"Обновлены пользователи: {string.Join(";", existingMembers.Select(x => x.NickName))}");
         }
 
         var newMembers = arguments.EntitiesDifference.Except(existingMembers ?? []);
-        await userRepository.AddRange(newMembers, arguments.EventType);
+        await userRepository.AddRangeAsync(newMembers, arguments.EventType);
         Log.Information($"Новые пользователи добавлены в базу: {string.Join(";", newMembers.Select(x => x.NickName))}");
     }
 }

@@ -32,7 +32,8 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         string channelReference,
         IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor,
         IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService,
-        EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer)
+        EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer,
+        ITimeProvider timeProvider)
     {
         this.getAllCurrentSubscribersQuery = getAllCurrentSubscribersQuery;
         this.messagesSendingService = messagesSendingService;
@@ -47,6 +48,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         this.eventsMonitoringProcessor = eventsMonitoringProcessor;
         this.monitoringService = monitoringService;
         this.entitiesChangeMessageProducer = entitiesChangeMessageProducer;
+        this.timeProvider = timeProvider;
     }
 
     private readonly GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
@@ -61,6 +63,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     private readonly IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor;
     private readonly IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService;
     private readonly EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer;
+    private readonly ITimeProvider timeProvider;
 
     private int checkPeriodSeconds;
     private DateTime basicTimeStamp;
@@ -69,10 +72,10 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     
     private async Task ProcessMonitoringByPeriodAsync()
     {
-        if ((DateTime.Now - basicTimeStamp).TotalSeconds > checkPeriodSeconds)
+        if ((timeProvider.Now - basicTimeStamp).TotalSeconds > checkPeriodSeconds)
         {
             await monitoringService.ProcessMonitoringAsync();
-            basicTimeStamp = DateTime.Now;
+            basicTimeStamp = timeProvider.Now;
         }
     }
 
@@ -148,8 +151,8 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
 
     public async Task InitializeAsync()
     {
-        basicTimeStamp = DateTime.Now;
-        beginWorkingFrom = DateTime.Now;
+        basicTimeStamp = timeProvider.Now;
+        beginWorkingFrom = timeProvider.Now;
 
         updates = await telegramBotClient.GetUpdatesAsync();
         await fetchUsersBackgroundService.LoginAsync();

@@ -2,12 +2,14 @@
 using MonitoringBot.Application.Events;
 using MonitoringBot.Application.Queries.Events;
 using MonitoringBot.Application.Queries.Events.Arguments;
+using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Events.ChannelMembers;
 
 namespace MonitoringBot.Application.Services;
 
 public class EventsMonitoringProcessor<TEntity>(
-    GetEventsInPeriodQueryExecution<TEntity> getEventsInPeriodQueryExecution) : IEventsMonitoringProcessor<TEntity>
+    GetEventsInPeriodQueryExecution<TEntity> getEventsInPeriodQueryExecution,
+    ITimeProvider timeProvider) : IEventsMonitoringProcessor<TEntity>
 {
     protected DateTime lastCheckTimeStamp;
     public event Func<object?, EntitiesCollectionChangedEventArgs<TEntity>, Task>? EntitiesJoined;
@@ -22,7 +24,7 @@ public class EventsMonitoringProcessor<TEntity>(
             new GetEventsInPeriodQuery
             {
                 From = lastCheckTimeStamp,
-                To = DateTime.Now
+                To = timeProvider.Now
             });
 
         var joined = new List<TEntity?>();
@@ -56,7 +58,7 @@ public class EventsMonitoringProcessor<TEntity>(
                     nameof(SubscriberJoinedEvent)));
         }
 
-        lastCheckTimeStamp = DateTime.Now;
+        lastCheckTimeStamp = timeProvider.Now;
     }
 
     private async Task RaiseEntityCollectionChangedEvent(

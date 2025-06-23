@@ -17,77 +17,23 @@ using NUnit.Framework;
 
 namespace MonitoringBot.IntegrationTests;
 
-public class ChangeDetectorSubscribersTests
+public class ChangeDetectorSubscribersTests : IntegrationTestsBase
 {
-    private DbContextOptions<MonitoringBotDbContextInMemory> options;
-    private UsersRepositoryInMemoryImplementation? usersRepository;
-    private EventsRepositoryImplementation<ChannelMember>? eventsRepository;
-    private SubscribersChangeProcessor? subscribersChangeProcessor;
-    private MonitoringBotDbContextBase? dbContext;
-    private List<ChannelMember>? allChannelMembers;
-    private EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>? subscribersChangeDetector;
-    private AddOrUpdateSubscribersCommand? addSubscribersCommand;
-    private GetEventsInPeriodQueryExecution<ChannelMember>? getEventsInPeriodQueryExecution;
-    private AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand;
-    private EventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor;
-    private const string lastActionBase = "base-action";
-    private SubscribersMonitoringService subscribersMonitoringService;
-    private Mock<FetchUsersBackgroundServiceBase> fetchUsersBackgroundServiceMock;
-    private GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
 
     [SetUp]
-    public virtual void SetUp()
+    public override void SetUp()
     {
-        allChannelMembers =
-        [
-            new(55, "test1", false, "test1", "test1", "79999998888", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel", nameof(SubscriberJoinedEvent)),
-            new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel", nameof(SubscriberJoinedEvent)),
-            new(88, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel", nameof(SubscriberJoinedEvent)),
-            new(99, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel", nameof(SubscriberJoinedEvent))
-        ];
+        base.SetUp();
+        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1));
 
-        options = new DbContextOptionsBuilder<MonitoringBotDbContextInMemory>()
-            .UseInMemoryDatabase("InMemoryDb")
-            .Options;
-        dbContext = new MonitoringBotDbContextInMemory(options);
-
-        usersRepository = new UsersRepositoryInMemoryImplementation(dbContext);
-        eventsRepository = new EventsRepositoryImplementation<ChannelMember> (dbContext);
-
-        getEventsInPeriodQueryExecution = new GetEventsInPeriodQueryExecution<ChannelMember>(eventsRepository);
-        addEventsCommand = new AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(eventsRepository);
-
-        addSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepository);
-        subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand);
-        subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand);
-
-        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
-        eventsMonitoringProcessor = new EventsMonitoringProcessor<ChannelMember>(getEventsInPeriodQueryExecution);
         eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor!.OnSubscribersQuantityChanged;
         eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersQuantityChanged;
-
-        fetchUsersBackgroundServiceMock = new Mock<FetchUsersBackgroundServiceBase>();
-        getAllCurrentSubscribersQuery = new(usersRepository);
-
-        subscribersMonitoringService = new(
-            fetchUsersBackgroundServiceMock.Object,
-            getAllCurrentSubscribersQuery,
-            subscribersChangeDetector,
-            addEventsCommand,
-            eventsMonitoringProcessor,
-            "test-channel");
     }
 
     [TearDown]
-    public async Task TearDown()
+    public override async Task TearDown()
     {
-        var members = dbContext!.ChannelMembers.ToList();
-        dbContext.ChannelMembers.RemoveRange(members);
-        await dbContext.SaveChangesAsync();
-
-        var events = dbContext!.Events.ToList();
-        dbContext.Events.RemoveRange(events);
-        await dbContext.SaveChangesAsync();
+        await base.TearDown();
     }
 
     [Test]
@@ -138,7 +84,7 @@ public class ChangeDetectorSubscribersTests
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![0] };
         fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
-        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]], nameof(SubscriberJoinedEvent));
+        await usersRepository!.AddRangeAsync([allChannelMembers![0], allChannelMembers[1]], nameof(SubscriberJoinedEvent));
 
         // Act
         await subscribersMonitoringService.ProcessMonitoringAsync();
@@ -163,7 +109,7 @@ public class ChangeDetectorSubscribersTests
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![1], allChannelMembers![2] };
         fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
-        await usersRepository!.AddRange([allChannelMembers![0], allChannelMembers[1]], nameof(SubscriberJoinedEvent));
+        await usersRepository!.AddRangeAsync([allChannelMembers![0], allChannelMembers[1]], nameof(SubscriberJoinedEvent));
 
         // Act
         await subscribersMonitoringService.ProcessMonitoringAsync();
@@ -190,7 +136,7 @@ public class ChangeDetectorSubscribersTests
         // Arrange
         var fromApi = new List<ChannelMember> { allChannelMembers![1], allChannelMembers![2] };
         fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
-        await usersRepository!.AddRange([allChannelMembers![1], allChannelMembers[2]], nameof(SubscriberJoinedEvent));
+        await usersRepository!.AddRangeAsync([allChannelMembers![1], allChannelMembers[2]], nameof(SubscriberJoinedEvent));
 
         // Act
         await subscribersMonitoringService.ProcessMonitoringAsync();

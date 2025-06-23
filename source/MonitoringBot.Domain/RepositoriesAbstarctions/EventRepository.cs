@@ -17,4 +17,9 @@ public abstract class EventRepository<TEntity>
     public abstract Task<IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>>> GetEventsByFilterAsync(
         EventsQueryFilter filter,
         CancellationToken cancellationToken = default);
+
+    public abstract Task<EntitiesChangedDomainEventBase<TEntity>?> GetLatestEventByTypeAndIdentity(
+        string eventType,
+        long userIdentityProjection,
+        CancellationToken cancellation = default);
 }

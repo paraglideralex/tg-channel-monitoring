@@ -15,5 +15,5 @@ public sealed class DeleteSubscribersCommand(UserRepository userRepository)
     }
 
     protected override async Task ExecuteCoreAsync(IEnumerable<ChannelMember> arguments) =>
-        await userRepository.DeleteRange(arguments);
+        await userRepository.DeleteRangeAsync(arguments);
 }

@@ -1,10 +1,13 @@
-﻿using MonitoringBot.Domain.Entities;
+﻿using MonitoringBot.Domain.Abstractions;
+using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure.Diagnostics;
 using MonitoringBot.Infrastructure.Services.FaultSafety;
 using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
 using Serilog;
+
+using System;
 
 using TL;
 
@@ -17,8 +20,8 @@ public class TelegramChannelService : TelegramApiServiceBase
     private const int delayBetweenParticipantsRequestsMilliseconds = 1050;
     private Channel? channel;
 
-    public TelegramChannelService(TelegramConfig config, string? channelReference, RetryServiceBase retryService)
-        : base(config, channelReference, retryService)
+    public TelegramChannelService(TelegramConfig config, string? channelReference, RetryServiceBase retryService, ITimeProvider timeProvider)
+        : base(config, channelReference, retryService, timeProvider)
     {
     }
 
@@ -196,7 +199,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         foreach (var user in result)
             members.Add(ToChannelMember(user));
 
-        State.LastSearchParticipantsTimeStamp = DateTime.Now;
+        State.LastSearchParticipantsTimeStamp = timeProvider.Now;
         Log.Debug($"Найдено {result.Count} участников канала");
 
         return members;
@@ -212,8 +215,8 @@ public class TelegramChannelService : TelegramApiServiceBase
         tgUser.first_name,
         tgUser.last_name,
         tgUser.phone,
-        DateTime.Now,
-        DateTime.Now,  // TODO: убрать в null
+        timeProvider.Now,
+        timeProvider.Now,  // TODO: убрать в null
         channelReference,
         null
     );

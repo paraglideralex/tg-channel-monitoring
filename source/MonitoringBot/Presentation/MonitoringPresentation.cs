@@ -1,27 +1,30 @@
-﻿using MonitoringBot.Domain.Entities;
+﻿using MonitoringBot.Application.Queries.Events;
+using MonitoringBot.Domain.Entities;
 
 namespace MonitoringBot.Presentation;
 
-public class MonitoringPresentation(MessageBuilder messageBuilder)
+public class MonitoringPresentation(
+    MessageBuilder messageBuilder
+    )
 {
-    public string FormatJoinedUsers(IEnumerable<ChannelMember> usersDifference, string eventType)
+    public async Task<string> FormatJoinedUsers(IEnumerable<ChannelMember> usersDifference, string eventType)
     {
         string message = "Ура, новые подпищщики!🍾🎊🎈\r\n\r\n";
-        message += FormatOneOrManyMembers(usersDifference, eventType);
+        message += await FormatOneOrManyMembers(usersDifference, eventType);
         return message;
     }
 
-    public string FormatLeftUsers(IEnumerable<ChannelMember> usersDifference, string eventType)
+    public async Task<string> FormatLeftUsers(IEnumerable<ChannelMember> usersDifference, string eventType)
     {
         string message = "Неееет! От нас свалили!👎💩🐀\r\n\r\n";
-        message += FormatOneOrManyMembers(usersDifference, eventType);
+        message += await FormatOneOrManyMembers(usersDifference, eventType);
         return message;
     }
 
     public async Task<string> FormatOneOrManyMembers(IEnumerable<ChannelMember> usersDifference, string eventType)
     {
         return usersDifference.Count() == 1
-                    ? await messageBuilder.FormatMemberAsync(usersDifference.FirstOrDefault() ?? new ChannelMember(), eventType)
-                    : await messageBuilder.FormatMembersAsync(usersDifference, eventType);
+                    ? await messageBuilder.NotificationMessageForOneAsync(usersDifference.FirstOrDefault() ?? new ChannelMember(), eventType)
+                    : await messageBuilder.NotificationMessageForManyAsync(usersDifference, eventType);
     }
 }

@@ -2,6 +2,7 @@
 using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Events;
 using MonitoringBot.Application.Services;
+using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Infrastructure;
@@ -18,8 +19,9 @@ public class SubscribersChangeProcessorTests
     private SubscribersChangeProcessor? monitoringEngine;
     private List<ChannelMember>? allChannelMembers;
     private Mock<IEventsMonitoringProcessor<ChannelMember>>? eventsMonitoringProcessorMock;
-    private AddOrUpdateSubscribersCommand? addSubscribersCommand;
+    private AddOrUpdateSubscribersCommand? addOrUpdateSubscribersCommand;
     private const string eventName = nameof(SubscriberJoinedEvent);
+    private Mock<ITimeProvider> timeProviderMock;
 
     [SetUp]
     public void SetUp()
@@ -33,9 +35,12 @@ public class SubscribersChangeProcessorTests
         ];
 
         usersRepositoryMock = new Mock<UserRepository>();
-        addSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepositoryMock.Object);
+        timeProviderMock = new Mock<ITimeProvider>();
+        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1));
 
-        monitoringEngine = new SubscribersChangeProcessor(addSubscribersCommand);
+        addOrUpdateSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepositoryMock.Object, timeProviderMock.Object);
+
+        monitoringEngine = new SubscribersChangeProcessor(addOrUpdateSubscribersCommand);
 
         eventsMonitoringProcessorMock = new Mock<IEventsMonitoringProcessor<ChannelMember>>();
         eventsMonitoringProcessorMock.Object.EntitiesJoined += monitoringEngine!.OnSubscribersQuantityChanged;
@@ -59,7 +64,7 @@ public class SubscribersChangeProcessorTests
 
         // Assert
         usersRepositoryMock!.Verify(
-            repo => repo.AddRange(It.Is<IEnumerable<ChannelMember>>(actual =>
+            repo => repo.AddRangeAsync(It.Is<IEnumerable<ChannelMember>>(actual =>
                 actual.SequenceEqual(allChannelMembers!)), eventName),
             Times.Once()
         );
@@ -86,7 +91,7 @@ public class SubscribersChangeProcessorTests
         // Assert
         usersRepositoryMock!.Verify(
             repo => repo.UpdateRangeAsync(It.Is<IEnumerable<ChannelMember>>(actual =>
-                actual.SequenceEqual(allChannelMembers!)), eventName),
+                actual.SequenceEqual(allChannelMembers!)), eventName, It.IsAny<DateTime>()),
             Times.Once()
         );
     }

@@ -2,12 +2,7 @@
 using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Infrastructure.Persistence;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace MonitoringBot.Infrastructure.Extensions;
 public static class EntityChangedEventsMapping

@@ -1,8 +1,10 @@
-﻿using MonitoringBot.Domain.Entities;
+﻿using MonitoringBot.Domain.Abstractions;
+using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
 using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Services;
 
+using Moq;
 
 using NUnit.Framework;
 
@@ -15,6 +17,7 @@ public class SubscribersChangeDetectorTests
     private EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>? subscribersChangeDetector;
     private string baseType = "base-type";
     private List<ChannelMember>? allChannelMembers;
+    private Mock<ITimeProvider> timeProviderMock;
 
     [SetUp]
     public void SetUp()
@@ -27,7 +30,10 @@ public class SubscribersChangeDetectorTests
             new(4, "4", false, "4", "4", "4", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel",baseType)
         ];
 
-        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
+        timeProviderMock = new Mock<ITimeProvider>();
+        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
+
+        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(timeProviderMock.Object);
         //subscriber = new ProcessorSubscriber();
 
         //subscribersChangeDetector.EntitiesJoined += subscriber.OnJoined;

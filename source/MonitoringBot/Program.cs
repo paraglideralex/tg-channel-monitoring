@@ -19,8 +19,11 @@ using MonitoringBot.Services.MessagesSending;
 using MonitoringBot.Application.Abstractions;
 
 using Telegram.BotAPI;
+using MonitoringBot.Infrastructure.Services;
 
 LoggingSetup.SetupLogging();
+
+var timeProvider = new SystemTimeProvider();
 
 var settingsBuilder = new SettingsBuilder();
 settingsBuilder.Build();
@@ -32,6 +35,7 @@ var dbContextOptions = new DbContextOptionsBuilder<MonitoringBotDbContextInMemor
 var dbContext = new MonitoringBotDbContextInMemory(dbContextOptions);
 
 var userRepository = new UsersRepositoryInMemoryImplementation(dbContext);
+var eventRepository = new EventsRepositoryImplementation<ChannelMember>(dbContext);
 
 var config = new TelegramConfig(
     settingsBuilder.TelegramApiSettings!.ApiId,
@@ -41,7 +45,9 @@ var config = new TelegramConfig(
 var retryService = new RetryService();
 
 var telegramService = new TelegramChannelService(config, 
-    settingsBuilder.TelegramApiSettings.ChannelReferenceLink, retryService);
+    settingsBuilder.TelegramApiSettings.ChannelReferenceLink,
+    retryService,
+    timeProvider);
 
 var backgroundUserFetchService = new FetchUsersBackgroundService(
     telegramService,
@@ -49,27 +55,27 @@ var backgroundUserFetchService = new FetchUsersBackgroundService(
 
 var client = new TelegramBotClient(settingsBuilder.TelegramBotSettings!.BotToken);
 
-var messageBuilder = new MessageBuilder(userRepository);
-var monitoringEngine = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
+var monitoringEngine = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(timeProvider);
 var getAllQuery = new GetAllCurrentSubscribersQuery(userRepository);
 
-var addUserCommand = new AddOrUpdateSubscribersCommand(userRepository);
+var addUserCommand = new AddOrUpdateSubscribersCommand(userRepository, timeProvider);
 var deleteUserCommand = new DeleteSubscribersCommand(userRepository);
 
 var monitoringProcessor = new SubscribersChangeProcessor(addUserCommand);
+
+var lastPrevious = new GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember>(eventRepository, timeProvider);
+var messageBuilder = new MessageBuilder(userRepository, lastPrevious, timeProvider);
 var monitoringPresentation = new MonitoringPresentation(messageBuilder);
 
 var subscribersChangeMessagingService = new EntitiesChangeMessagingService<ChannelMember>(
     client,
     settingsBuilder.TelegramBotSettings.ChatIdsCollection);
 
-var eventRepository = new EventsRepositoryImplementation<ChannelMember>(dbContext);
-
 var addEventsCommand = new AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(eventRepository);
 
 var getEventsInPeriodQuery = new GetEventsInPeriodQueryExecution<ChannelMember>(eventRepository);
 
-var eventsProcessor = new EventsMonitoringProcessor<ChannelMember>(getEventsInPeriodQuery);
+var eventsProcessor = new EventsMonitoringProcessor<ChannelMember>(getEventsInPeriodQuery, timeProvider);
 
 var monitoringService = new SubscribersMonitoringService(
     backgroundUserFetchService,
@@ -94,7 +100,8 @@ var monitoringBotRunner = new MonitoringBotRunner<ChannelMember, SubscriberJoine
     settingsBuilder.TelegramApiSettings.ChannelReferenceLink,
     eventsProcessor,
     monitoringService,
-    messageProducer);
+    messageProducer,
+    timeProvider);
 
 await monitoringBotRunner.InitializeAsync();
 await monitoringBotRunner.MainLoopAsync();

@@ -62,4 +62,21 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
         var events = await query.ToListAsync(cancellationToken);
         return events.Select(EntityChangedEventsMapping.MapToDomainEvent<TEntity>).ToList();
     }
+
+    public override async Task<EntitiesChangedDomainEventBase<TEntity>?> GetLatestEventByTypeAndIdentity(
+        string eventType,
+        long userIdentityProjection,
+        CancellationToken cancellation = default)
+    {
+        var target = await dbContext.Events
+            .AsNoTracking()
+            .Where(e => e.EntityIdProjection == userIdentityProjection.ToString() &&
+                        e.EventType == eventType)
+            .OrderByDescending(e => e.TimeStamp)
+            .FirstOrDefaultAsync();
+
+        return target is null
+            ? null
+            : EntityChangedEventsMapping.MapToDomainEvent<TEntity>(target);
+    }
 }
