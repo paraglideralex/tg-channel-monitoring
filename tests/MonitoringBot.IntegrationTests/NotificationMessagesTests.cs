@@ -42,17 +42,16 @@ public class NotificationMessagesTests : IntegrationTestsBase
     {
         await base.TearDown();
         messageConsumer.Messages.Clear();
+        timeProviderMock.Reset();
     }
 
     [Test]
     public async Task JoinedOneNew_Success()
     {
-        // Arrange
-        var fromApi = new List<ChannelMember> { allChannelMembers![0], allChannelMembers[1] };
-        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
-        await usersRepository!.AddAsync(allChannelMembers![0], nameof(SubscriberJoinedEvent));
-
-        // Act
+        // Arrange & Act
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot())
+            .Returns([new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2024, 1, 1, 3, 3, 5), "test-channel", null)]);
+        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
         await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // Assert
@@ -62,41 +61,32 @@ public class NotificationMessagesTests : IntegrationTestsBase
         Assert.That(message, Contains.Substring("Ура, новые подпищщики!"));
         Assert.That(message, Contains.Substring("Последнее действие: Подписка"));
         Assert.That(message, Contains.Substring("Информация от: 01.01.2025 03:03"));
-        Assert.That(message, Contains.Substring("Впервые зарегистрирован: 01.01.2025 03:03"));
+        Assert.That(message, Contains.Substring("Впервые зарегистрирован: 01.01.2024 03:03"));
     }
 
     [Test]
     public async Task JoinedOneOld_Success()
     {
-        // Arrange
+        // Arrange & Act
 
         // First joins at first time
-        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(
-            [new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2024, 1, 1, 3, 3, 5), "test-channel", null)]
-            );
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot())
+            .Returns([new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2024, 1, 1, 3, 3, 5), "test-channel", null)]);
         timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
         await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // First leaves
         fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns([]);
         timeProviderMock.Reset();
-        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 2, 2, 3, 3, 5));
+        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 2, 2, 9, 1, 5));
         await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // First joins again
-
-        var fromApi = new List<ChannelMember> 
-        {
-            new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 3, 25, 3, 3, 5), new DateTime(2025, 3, 25, 3, 3, 5),"test-channel", null)
-        };
         timeProviderMock.Reset();
-        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 3, 25, 3, 3, 5));
-        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
-        //await usersRepository!.AddAsync(
-        //    new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2024, 1, 1, 3, 3, 5), "test-channel", nameof(SubscriberLeftEvent)),
-        //    nameof(SubscriberLeftEvent));
+        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 3, 25, 5, 3, 7));
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot())
+            .Returns([new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 3, 25, 5, 3, 7), new DateTime(2025, 3, 25, 5, 3, 7), "test-channel", null)]);
 
-        // Act
         await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // Assert
@@ -104,30 +94,43 @@ public class NotificationMessagesTests : IntegrationTestsBase
 
         var message = messageConsumer.Messages[2];
         Assert.That(message, Contains.Substring("Ура, новые подпищщики!"));
+        Assert.That(message, Contains.Substring("Он снова вернулся к нам после перерыва: 50d, 20h, 2m, 2s"));
         Assert.That(message, Contains.Substring("Последнее действие: Подписка"));
-        Assert.That(message, Contains.Substring("Информация от: 25.02.2025 03:03"));
+        Assert.That(message, Contains.Substring("Информация от: 25.03.2025 05:03"));
         Assert.That(message, Contains.Substring("Впервые зарегистрирован: 01.01.2024 03:03"));
     }
 
     [Test]
-    public async Task OneLeft_Success()
+    public async Task TwoLeft_Success()
     {
-        // Arrange
-        var fromApi = new List<ChannelMember> { allChannelMembers![0] };
-        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns(fromApi);
-        await usersRepository!.AddRangeAsync([allChannelMembers![0], allChannelMembers[1]], nameof(SubscriberJoinedEvent));
+        // Arrange & Act
 
-        // Act
+        // Two Join
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot())
+            .Returns([new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2024, 1, 1, 3, 3, 5), "test-channel", null),
+                      new(88, "test3", false, "test3", "test3", "79999998887", new DateTime(2025, 1, 1, 3, 5, 5), new DateTime(2024, 1, 1, 3, 5, 5), "test-channel", null)]);
+        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
+        await subscribersMonitoringService.ProcessMonitoringAsync();
+
+        // Two leave
+        fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns([]);
+        timeProviderMock.Reset();
+        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 2, 2, 9, 1, 5));
         await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // Assert
-        Assert.That(messageConsumer.Messages.Count, Is.EqualTo(1));
+        Assert.That(messageConsumer.Messages.Count, Is.EqualTo(2));
 
-        var message = messageConsumer.Messages[0];
+        var message = messageConsumer.Messages[1];
         Assert.That(message, Contains.Substring("Неееет! От нас свалили!"));
+        Assert.That(message, Contains.Substring("Пользователь #1:"));
+        Assert.That(message, Contains.Substring("Пользователь #2:"));
+        Assert.That(message, Contains.Substring("Человека хватило на 32d, 5h, 58m..."));
+        Assert.That(message, Contains.Substring("ID: 77"));
+        Assert.That(message, Contains.Substring("ID: 88"));
         Assert.That(message, Contains.Substring("Последнее действие: Отписка"));
         Assert.That(message, Contains.Substring("Информация от: 01.01.2025 03:03"));
-        Assert.That(message, Contains.Substring("Впервые зарегистрирован: 01.01.2025 03:03"));
+        Assert.That(message, Contains.Substring("Впервые зарегистрирован: 01.01.2024 03:05"));
     }
 
 }
@@ -136,9 +139,9 @@ internal class MessageConsumer
 {
     public List<string> Messages { get; private set; } = [];
 
-    public async Task OnMessageProduced(object? sender, MessageCreatedEventArgs args)
+    public Task OnMessageProduced(object? sender, MessageCreatedEventArgs args)
     {
-        await Task.Delay(1);
         Messages.Add(args.Message);
+        return Task.CompletedTask;
     }
 }

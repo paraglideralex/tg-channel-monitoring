@@ -8,4 +8,6 @@ public class EntitiesChangedDomainEventBase<TEntity> : IDomainEvent
     public string EntityIdProjection { get; init; }
     public string EntityNameProjection { get; init; }
     public string ChannelName { get; init; }
+
+    public override string ToString() => $"{GetType().Name}_{TimeStamp}_{EntityIdProjection}_{EntityNameProjection}_{ChannelName}";
 }

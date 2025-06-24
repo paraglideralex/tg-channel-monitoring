@@ -28,7 +28,7 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
         var rows = await dbContext.Events
             .Where(e =>
                 e.EntityType == typeof(TEntity).Name &&
-                e.TimeStamp >= from &&
+                e.TimeStamp > from &&
                 e.TimeStamp <= to)
             .OrderBy(e => e.TimeStamp)
             .ToListAsync(cancellationToken);

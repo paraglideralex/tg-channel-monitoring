@@ -78,10 +78,12 @@ public class MessageBuilder(
             return await FormatMemberAsync(member, eventType);
 
         var specialMessage = lastAction is nameof(SubscriberJoinedEvent)
-            ? $"Он снова вернулся к нам после перерыва: {((TimeSpan)lastTimeSpan).FormattedDuration()}!\r\n"
-            : $"Человека хватило на {((TimeSpan)lastTimeSpan).FormattedDuration()}...\r\n";
+            ? $"Он снова вернулся к нам после перерыва: {((TimeSpan)lastTimeSpan).FormattedDuration()}😃!\r\n"
+            : $"Человека хватило на {((TimeSpan)lastTimeSpan).FormattedDuration()}...🙄\r\n";
 
-        return specialMessage + await FormatMemberAsync(member, eventType);
+        var result = specialMessage + await FormatMemberAsync(member, eventType);
+
+        return result;
     }
 
     public async Task<string> NotificationMessageForManyAsync(IEnumerable<ChannelMember> members, string? eventType = null)
@@ -92,8 +94,8 @@ public class MessageBuilder(
         foreach (var member in members)
         {
             sb.AppendLine($"Пользователь #{index}:");
-            sb.AppendLine(await FormatMemberAsync(member, eventType));
-            sb.AppendLine();
+            sb.AppendLine(await NotificationMessageForOneAsync(member, eventType));
+            //sb.AppendLine();
             index++;
         }
         if (sb.Length == 0)

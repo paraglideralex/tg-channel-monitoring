@@ -10,4 +10,7 @@ public class EventEntity
     public DateTime TimeStamp { get; set; }
     public string EntityIdProjection { get; set; } = null!;
     public string EntityNameProjection { get; set;} = null!;
+
+    public override string ToString() => $"{GetType().Name}_{TimeStamp}_{EventType}_" +
+        $"{EntityIdProjection}_{EntityNameProjection}_{AggregateNameProjection}";
 }
