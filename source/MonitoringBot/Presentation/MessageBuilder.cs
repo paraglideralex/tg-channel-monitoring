@@ -17,7 +17,7 @@ public class MessageBuilder(
     GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember> getLastPreviousEventQueryExecution,
     ITimeProvider timeProvider)
 {
-    public async Task<string> CheckDiagnostics(int dataUpdatePeriodSeconds, 
+    public async Task<string> CheckDiagnosticsAsync(int dataUpdatePeriodSeconds, 
         int botSubscribersCount,
         DateTime startWorkingTimeStamp,
         TelegramServiceState state,
@@ -39,19 +39,19 @@ public class MessageBuilder(
         return sb.ToString();
     }
 
-    public async Task<string> Last(string? eventType = null, int count = 5)
+    public async Task<string> LastAsync(string? eventType = null, int count = 5)
     {
         var members = await userRepository.TakeLast(count);
         return await GetLastCoreAsync(members, eventType, count);
     }
 
-    public async Task<string> LastSubscribed(string? eventType = null, int count = 5)
+    public async Task<string> LastSubscribedAsync(string? eventType = null, int count = 5)
     {
         var members = await userRepository.TakeLastByAction(nameof(SubscriberJoinedEvent), count);
         return await GetLastCoreAsync(members, eventType, count);
     }
 
-    public async Task<string> LastUnsubscribed(string? eventType = null, int count = 5)
+    public async Task<string> LastUnsubscribedAsync(string? eventType = null, int count = 5)
     {
         var members = await userRepository.TakeLastByAction(nameof(SubscriberLeftEvent), count);
         return await GetLastCoreAsync(members, eventType, count);

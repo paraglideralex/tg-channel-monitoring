@@ -216,7 +216,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         tgUser.last_name,
         tgUser.phone,
         timeProvider.Now,
-        timeProvider.Now,  // TODO: убрать в null
+        timeProvider.Now,
         channelReference,
         null
     );

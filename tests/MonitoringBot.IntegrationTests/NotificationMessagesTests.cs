@@ -1,7 +1,6 @@
 ﻿using MonitoringBot.Application.Events;
 using MonitoringBot.Application.Queries.Events;
 using MonitoringBot.Domain.Entities;
-using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Presentation;
 using MonitoringBot.Services.MessagesSending;
 

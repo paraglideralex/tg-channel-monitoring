@@ -1,5 +1,6 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Projections;
 
 namespace MonitoringBot.Domain.RepositoriesAbstarctions;
 
@@ -21,5 +22,10 @@ public abstract class EventRepository<TEntity>
     public abstract Task<EntitiesChangedDomainEventBase<TEntity>?> GetLatestEventByTypeAndIdentity(
         string eventType,
         long userIdentityProjection,
+        CancellationToken cancellation = default);
+
+    public abstract Task<List<EventTypeWithDate>> GetEventTypesInPeriodAsync(
+        DateTime fromNonInclusive,
+        DateTime toInclusive,
         CancellationToken cancellation = default);
 }

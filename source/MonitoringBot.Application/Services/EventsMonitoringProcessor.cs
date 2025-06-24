@@ -23,8 +23,8 @@ public class EventsMonitoringProcessor<TEntity>(
         var allEvents = await getEventsInPeriodQueryExecution.ExecuteAsync(
             new GetEventsInPeriodQuery
             {
-                From = lastCheckTimeStamp,
-                To = timeProvider.Now
+                FromNonInclusive = lastCheckTimeStamp,
+                ToInclusive = timeProvider.Now
             });
 
         var joined = new List<TEntity?>();

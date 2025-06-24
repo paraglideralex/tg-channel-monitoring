@@ -2,6 +2,7 @@
 
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Projections;
 using MonitoringBot.Domain.RepositoriesAbstarctions;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Persistence;
@@ -78,5 +79,25 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
         return target is null
             ? null
             : EntityChangedEventsMapping.MapToDomainEvent<TEntity>(target);
+    }
+
+    public override async Task<List<EventTypeWithDate>> GetEventTypesInPeriodAsync(
+        DateTime fromNonInclusive,
+        DateTime toInclusive,
+        CancellationToken cancellation = default)
+    {
+        var target = await dbContext.Events
+            .AsNoTracking()
+            .Where(e => e.TimeStamp > fromNonInclusive &&
+                        e.TimeStamp <= toInclusive)
+            .OrderByDescending(e => e.TimeStamp)
+            .Select(e => new EventTypeWithDate
+            {
+                TimeStamp = e.TimeStamp,
+                EventType = e.EventType
+            })
+            .ToListAsync();
+
+        return target;
     }
 }

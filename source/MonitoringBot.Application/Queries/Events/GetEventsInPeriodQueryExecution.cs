@@ -11,6 +11,6 @@ public class GetEventsInPeriodQueryExecution<TEntity>(
         GetEventsInPeriodQuery query)
     {
 
-        return await eventRepository.GetEventsByPeriodAsync(query.From, query.To); 
+        return await eventRepository.GetEventsByPeriodAsync(query.FromNonInclusive, query.ToInclusive); 
     }
 }

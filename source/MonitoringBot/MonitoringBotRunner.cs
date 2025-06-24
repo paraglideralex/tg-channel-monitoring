@@ -98,11 +98,11 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                 string? resultMessage = message switch
                 {
                     "/info" => messageBuilder.Info(channelReference),
-                    "/last" => await messageBuilder.Last(),
-                    "/last_subscribed" => await messageBuilder.LastSubscribed(),
-                    "/last_unsubscribed" => await messageBuilder.LastUnsubscribed(),
+                    "/last" => await messageBuilder.LastAsync(),
+                    "/last_subscribed" => await messageBuilder.LastSubscribedAsync(),
+                    "/last_unsubscribed" => await messageBuilder.LastUnsubscribedAsync(),
                     "/change_period" => "будет менять период мониторинга",
-                    "/check" => await messageBuilder.CheckDiagnostics(
+                    "/check" => await messageBuilder.CheckDiagnosticsAsync(
                                       checkPeriodSeconds, 
                                       chatIdCollection.Count,
                                       beginWorkingFrom,
