@@ -64,7 +64,8 @@ var deleteUserCommand = new DeleteSubscribersCommand(userRepository);
 var monitoringProcessor = new SubscribersChangeProcessor(addUserCommand);
 
 var lastPrevious = new GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember>(eventRepository, timeProvider);
-var messageBuilder = new MessageBuilder(userRepository, lastPrevious, timeProvider);
+var usersInPeriodQuery = new GetUsersCountForPeriodQueryExecution(userRepository, eventRepository, new UsersCountForPeriodCore());
+var messageBuilder = new MessageBuilder(userRepository, lastPrevious, usersInPeriodQuery, timeProvider);
 var monitoringPresentation = new MonitoringPresentation(messageBuilder);
 
 var subscribersChangeMessagingService = new EntitiesChangeMessagingService<ChannelMember>(

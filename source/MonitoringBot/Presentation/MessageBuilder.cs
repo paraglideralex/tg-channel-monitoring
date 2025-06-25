@@ -15,6 +15,7 @@ namespace MonitoringBot.Presentation;
 public class MessageBuilder(
     UserRepository userRepository,
     GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember> getLastPreviousEventQueryExecution,
+    GetUsersCountForPeriodQueryExecution getUsersCountForPeriodQueryExecution,
     ITimeProvider timeProvider)
 {
     public async Task<string> CheckDiagnosticsAsync(int dataUpdatePeriodSeconds, 
@@ -60,7 +61,6 @@ public class MessageBuilder(
     public string Info(string channelReference) =>
         $"Данный бот предоставляет для канала {channelReference} информацию о хороших новых подписчиках ❤️ и плохих отписавшихся 💩";
 
-    
     public async Task<string> NotificationMessageForOneAsync(
         ChannelMember member,
         string? eventType = null)
@@ -142,6 +142,40 @@ public class MessageBuilder(
             sb.AppendLine("Нет пользователей для отображения.");
 
         return sb.ToString();
+    }
+
+    public async Task<string> CountHistoryAsync(
+        DateTime? toDateTimeInclusive = null,
+        DateTime? fromDateTimeNonInclusive = null,
+        TimeSpan? step = null)
+    {
+        var actualToDateTimeInclusive = toDateTimeInclusive ?? timeProvider.Now;
+        var actualFromDateTimeNonInclusive = fromDateTimeNonInclusive ?? actualToDateTimeInclusive.AddDays(-30);
+        var actualStep = step ?? TimeSpan.FromDays(1);
+
+        var queryResult = await getUsersCountForPeriodQueryExecution.ExecuteAsync(new()
+        { 
+            Step = actualStep,
+            FromNonInclusive = actualFromDateTimeNonInclusive,
+            ToInclusive = actualToDateTimeInclusive
+        });
+
+        var period = toDateTimeInclusive is null && fromDateTimeNonInclusive is null
+            ? "месяц"
+            : toDateTimeInclusive is not null && fromDateTimeNonInclusive is not null
+                ?((DateTime)toDateTimeInclusive - (DateTime)fromDateTimeNonInclusive).FormattedDuration()
+                : (toDateTimeInclusive - fromDateTimeNonInclusive).ToString();
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"📈 Вот так менялось количество подписчиков за {period}: 📊");
+        sb.AppendLine();
+        foreach (var item in queryResult)
+        {
+            sb.AppendLine($"{item.Date.ToString("dd.MM.yyyy HH:mm")}:\t{item.UsersCount}");
+        }
+
+        return sb.ToString();
+
     }
 
     private string MapActions(string action) => action switch

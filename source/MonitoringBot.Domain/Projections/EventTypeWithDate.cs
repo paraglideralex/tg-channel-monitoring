@@ -1,7 +1,5 @@
-﻿namespace MonitoringBot.Domain.Projections;
+﻿using System.ComponentModel.DataAnnotations;
 
-public sealed record EventTypeWithDate
-{
-    public DateTime TimeStamp { get; init; }
-    public string? EventType { get; init; } = null;
-}
+namespace MonitoringBot.Domain.Projections;
+
+public record struct EventTypeWithDate(DateTime TimeStamp, string? EventType);

@@ -20,6 +20,7 @@ public class QueryMessagesTests : IntegrationTestsBase
     private EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer;
     private MessageConsumer messageConsumer;
     private GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember> getTimeSpanBetweenLastEventsQueryExecution;
+    private GetUsersCountForPeriodQueryExecution getUsersCountForPeriodQueryExecution;
     private MessageBuilder messageBuilder;
     private EventsSequencesExamples eventsSequencesExamples;
     private const string defaultChannel = "DefaultChannel";
@@ -32,7 +33,9 @@ public class QueryMessagesTests : IntegrationTestsBase
         eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersQuantityChanged;
 
         getTimeSpanBetweenLastEventsQueryExecution = new(eventsRepository, timeProviderMock.Object);
-        messageBuilder = new MessageBuilder(usersRepository, getTimeSpanBetweenLastEventsQueryExecution, timeProviderMock.Object);
+        getUsersCountForPeriodQueryExecution = new(usersRepository, eventsRepository, new UsersCountForPeriodCore());
+        messageBuilder = new MessageBuilder(usersRepository, getTimeSpanBetweenLastEventsQueryExecution,
+            getUsersCountForPeriodQueryExecution, timeProviderMock.Object);
 
         entitiesChangeMessageProducer = new SubscribersChangeMessageProducer(new MonitoringPresentation(messageBuilder));
 
@@ -122,13 +125,11 @@ public class QueryMessagesTests : IntegrationTestsBase
         await usersRepository.AddRangeAsync(new List<ChannelMember> { channelMember1, channelMember2, channelMember3, channelMember4, channelMember5 },
             nameof(SubscriberJoinedEvent));
 
-        var query = new GetUsersCountForPeriodQueryExecution(usersRepository, eventsRepository);
-        var result = await query.ExecuteAsync(new()
-        {
-            FromNonInclusive = new DateTime(2025, 1, 1, 9, 0, 0),
-            ToInclusive = new DateTime(2025, 1, 7, 20, 0, 0),
-            Step = TimeSpan.FromHours(12)
-        });
+        var query = new GetUsersCountForPeriodQueryExecution(usersRepository, eventsRepository, new UsersCountForPeriodCore());
+
+        var message = await messageBuilder.CountHistoryAsync(new DateTime(2025, 1, 7, 20, 0, 0), new DateTime(2025, 1, 1, 9, 0, 0), TimeSpan.FromHours(24));
+
+        var message2 = await messageBuilder.CountHistoryAsync(new DateTime(2025, 1, 7, 20, 0, 0), new DateTime(2024, 12, 1, 9, 0, 0), TimeSpan.FromHours(24));
         // Assert
     }
 }

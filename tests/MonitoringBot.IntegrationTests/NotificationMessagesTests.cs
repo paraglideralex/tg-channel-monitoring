@@ -15,6 +15,7 @@ public class NotificationMessagesTests : IntegrationTestsBase
     private EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer;
     private MessageConsumer messageConsumer;
     private GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember> getTimeSpanBetweenLastEventsQueryExecution;
+    private GetUsersCountForPeriodQueryExecution getUsersCountForPeriodQueryExecution;
 
     [SetUp]
     public override void SetUp()
@@ -24,9 +25,13 @@ public class NotificationMessagesTests : IntegrationTestsBase
         eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersQuantityChanged;
 
         getTimeSpanBetweenLastEventsQueryExecution = new(eventsRepository, timeProviderMock.Object);
+
+        getUsersCountForPeriodQueryExecution = new(usersRepository, eventsRepository, new UsersCountForPeriodCore());
+
+
         entitiesChangeMessageProducer = new SubscribersChangeMessageProducer(
             new MonitoringPresentation(
-                new MessageBuilder(usersRepository, getTimeSpanBetweenLastEventsQueryExecution, timeProviderMock.Object)
+                new MessageBuilder(usersRepository, getTimeSpanBetweenLastEventsQueryExecution, getUsersCountForPeriodQueryExecution, timeProviderMock.Object)
                 ));
 
         eventsMonitoringProcessor.EntitiesJoined += entitiesChangeMessageProducer.OnEntitiesJoined;

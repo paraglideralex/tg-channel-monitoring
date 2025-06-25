@@ -108,6 +108,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                                       beginWorkingFrom,
                                       fetchUsersBackgroundService.GetState(),
                                       channelReference),
+                    "/countHistory" => await messageBuilder.CountHistoryAsync(),
                     _ => null
                 };
 

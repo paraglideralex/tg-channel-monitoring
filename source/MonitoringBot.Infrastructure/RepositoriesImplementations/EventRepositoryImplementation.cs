@@ -91,11 +91,7 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
             .Where(e => e.TimeStamp > fromNonInclusive &&
                         e.TimeStamp <= toInclusive)
             .OrderByDescending(e => e.TimeStamp)
-            .Select(e => new EventTypeWithDate
-            {
-                TimeStamp = e.TimeStamp,
-                EventType = e.EventType
-            })
+            .Select(e => new EventTypeWithDate(e.TimeStamp, e.EventType))
             .ToListAsync();
 
         return target;
