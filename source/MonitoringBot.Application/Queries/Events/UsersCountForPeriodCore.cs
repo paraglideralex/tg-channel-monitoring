@@ -1,48 +1,73 @@
-﻿using MonitoringBot.Domain.Events.ChannelMembers;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Projections;
+
+using System.Collections.Generic;
+using System.Reflection.Metadata;
 
 namespace MonitoringBot.Application.Queries.Events;
 
 public sealed class UsersCountForPeriodCore
 {
-    public List<DateWithUsersCount> Execute(long currentCount,
+    public DateWithUsersCount[] Execute(long currentCount,
         List<EventTypeWithDate> eventTypesToDate,
-        DateTime periodEndInclusive,
+        DateTime fromNonInclusive,
+        DateTime toInclusive,
         TimeSpan step)
     {
-        if (eventTypesToDate.Count is 0)
-            return [];
 
-        var dateWithUserSequence = new List<DateWithUsersCount> { new(periodEndInclusive, currentCount) };
 
         if (eventTypesToDate.Count is 1)
-            return dateWithUserSequence;
+            return [new(toInclusive, currentCount)];
 
-        var counter = currentCount;
-        var firstDateFloored = periodEndInclusive.Date;
+        var closestTime = PreviousDateTimeAlignedDown(toInclusive, step);
+        var furthestTime = PreviousDateTimeAlignedDown(fromNonInclusive, step);
 
-        var currentStepDate = firstDateFloored;
-        for (int j = 1; j < eventTypesToDate.Count; j++)
+        var dict = DatesSequenceDictionary(step, furthestTime, closestTime);
+        var keys = dict.Keys.ToArray();
+        if (eventTypesToDate.Count is 0)
+            return FillDictionaryWithConstant(dict, keys.Length, currentCount);
+
+        long backCounter = currentCount;
+        foreach(var concreteEvent in eventTypesToDate)
         {
-            var current = eventTypesToDate[j];
-            var previous = eventTypesToDate[j - 1];
-
-            var currentTime = GetPreviousDateTimeAligned(current.TimeStamp, step);
-            var isFromCurrentPeriod = currentTime + step <= currentStepDate;
-
-            var currentStepDifference = StepDifference(previous.EventType);
-            counter += currentStepDifference;
-
-            if (isFromCurrentPeriod)
-            {
-                currentStepDate = GetPreviousDateTimeAligned(current.TimeStamp, step);
-                dateWithUserSequence.Add(new(currentStepDate, counter));
-            }
+            backCounter += StepDifference(concreteEvent.EventType);
+            dict[PreviousDateTimeAlignedDown(concreteEvent.TimeStamp, step)].Add(concreteEvent);
         }
-        return dateWithUserSequence;
+
+        long frontCounter = backCounter;
+        
+        var output = new DateWithUsersCount[keys.Length];
+        for(int i = dict.Keys.Count - 1; i >= 0; i--)
+        {
+            var key = keys[i];
+            foreach(var value in dict[key])
+            {
+                frontCounter -= StepDifference(value.EventType);
+            }
+            output[i] = new(key, frontCounter);
+        }
+        return output;
     }
 
-    private DateTime GetPreviousDateTimeAligned(DateTime inputDateTime, TimeSpan step)
+    private Dictionary<DateTime, List<EventTypeWithDate>> DatesSequenceDictionary(
+        TimeSpan step,
+        DateTime laterBorderNonInclusive,
+        DateTime earlierBorderInclusive)
+    {
+        Dictionary<DateTime, List<EventTypeWithDate>> dict = [];
+
+        while (earlierBorderInclusive >= laterBorderNonInclusive)
+        {
+            dict[earlierBorderInclusive] = [];
+            earlierBorderInclusive -= step;
+        }
+
+        return dict;
+    }
+
+    private DateTime PreviousDateTimeAlignedDown(DateTime inputDateTime, TimeSpan step)
     {
         if (step <= TimeSpan.Zero)
             throw new ArgumentException("TimeSpan must be positive.", nameof(step));
@@ -66,6 +91,20 @@ public sealed class UsersCountForPeriodCore
         nameof(SubscriberLeftEvent) => 1,
         _ => 0
     };
+
+    private DateWithUsersCount[] FillDictionaryWithConstant(Dictionary<DateTime, List<EventTypeWithDate>> dictionary, int arrayLength, long constant)
+    {
+        var array = new DateWithUsersCount[arrayLength];
+
+        int counter = 0;
+        foreach (var key in dictionary.Keys)
+        {
+            array[counter] = new(key, constant);
+            counter++;
+        }
+        return array;
+    }
+        
 }
 
 public record struct DateWithUsersCount(DateTime Date, long UsersCount);

@@ -14,7 +14,7 @@ public sealed class GetUsersCountForPeriodQueryExecution(
     EventRepository<ChannelMember> eventsRepository,
     UsersCountForPeriodCore usersCountForPeriodCore)
 {
-    public async Task<List<DateWithUsersCount>> ExecuteAsync(GetUsersCountForPeriodQuery query)
+    public async Task<DateWithUsersCount[]> ExecuteAsync(GetUsersCountForPeriodQuery query)
     {
         var countTask = userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent));
         var eventTypesOrdered = eventsRepository.GetEventTypesInPeriodAsync(
@@ -26,6 +26,6 @@ public sealed class GetUsersCountForPeriodQueryExecution(
         var currentCount = countTask.Result;
         var eventTypesToDate = eventTypesOrdered.Result;
 
-        return usersCountForPeriodCore.Execute(currentCount, eventTypesToDate, query.ToInclusive, query.Step);
+        return usersCountForPeriodCore.Execute(currentCount, eventTypesToDate, query.FromNonInclusive, query.ToInclusive, query.Step);
     }
 }
