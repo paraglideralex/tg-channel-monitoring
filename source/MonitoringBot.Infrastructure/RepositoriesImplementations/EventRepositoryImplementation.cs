@@ -2,6 +2,7 @@
 
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Projections;
 using MonitoringBot.Domain.RepositoriesAbstarctions;
 using MonitoringBot.Infrastructure.Extensions;
@@ -95,5 +96,26 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
             .ToListAsync();
 
         return target;
+    }
+
+    public async Task<long> CountEntitiesIncreaseByPeriodAsync(DateTime dateTimeTo, DateTime? dateTimeFrom = null)
+    {
+        var dateFromSigned = dateTimeFrom ?? DateTime.MinValue;
+
+        var result = await dbContext.Events
+            .Where(e => e.TimeStamp < dateTimeTo &&
+                        e.TimeStamp >= dateFromSigned &&
+                        (e.EventType == nameof(SubscriberJoinedEvent) || e.EventType == nameof(SubscriberLeftEvent)))
+            .GroupBy(e => 1)
+            .Select(g => new
+            {
+                Joined = g.Count(e => e.EventType == nameof(SubscriberJoinedEvent)),
+                Left = g.Count(e => e.EventType == nameof(SubscriberLeftEvent))
+            })
+            .FirstOrDefaultAsync();
+
+        var activeSubscribers = (result?.Joined ?? 0) - (result?.Left ?? 0);
+
+        return activeSubscribers;
     }
 }

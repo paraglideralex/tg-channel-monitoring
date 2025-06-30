@@ -1,10 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Conventions;
-
-using MonitoringBot.Domain.Events.ChannelMembers;
+﻿using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Projections;
 
-using System.Collections.Generic;
-using System.Reflection.Metadata;
+using System.Text.Json;
 
 namespace MonitoringBot.Application.Queries.Events;
 
@@ -16,11 +13,6 @@ public sealed class UsersCountForPeriodCore
         DateTime toInclusive,
         TimeSpan step)
     {
-
-
-        if (eventTypesToDate.Count is 1)
-            return [new(toInclusive, currentCount)];
-
         var closestTime = PreviousDateTimeAlignedDown(toInclusive, step);
         var furthestTime = PreviousDateTimeAlignedDown(fromNonInclusive, step);
 
@@ -32,20 +24,24 @@ public sealed class UsersCountForPeriodCore
         long backCounter = currentCount;
         foreach(var concreteEvent in eventTypesToDate)
         {
-            backCounter += StepDifference(concreteEvent.EventType);
-            dict[PreviousDateTimeAlignedDown(concreteEvent.TimeStamp, step)].Add(concreteEvent);
+            var previousDateTimeAlignedDown = PreviousDateTimeAlignedDown(concreteEvent.TimeStamp, step);
+            var valueExists = dict.TryGetValue(previousDateTimeAlignedDown, out _);
+
+            if (valueExists)
+            {
+                backCounter += StepDifference(concreteEvent.EventType);
+                dict[previousDateTimeAlignedDown].Add(concreteEvent);
+            }
         }
 
         long frontCounter = backCounter;
-        
         var output = new DateWithUsersCount[keys.Length];
         for(int i = dict.Keys.Count - 1; i >= 0; i--)
         {
             var key = keys[i];
             foreach(var value in dict[key])
-            {
                 frontCounter -= StepDifference(value.EventType);
-            }
+
             output[i] = new(key, frontCounter);
         }
         return output;
@@ -74,6 +70,12 @@ public sealed class UsersCountForPeriodCore
 
         long ticksPerStamp = step.Ticks;
         long inputTicks = inputDateTime.Ticks;
+
+        // return if input is divisible to step
+        if (inputTicks % ticksPerStamp == 0)
+            return inputDateTime;
+
+        // else - align down
         long alignedTicks = inputTicks / ticksPerStamp * ticksPerStamp;
 
         DateTime alignedDateTime = new(alignedTicks);

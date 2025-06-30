@@ -13,5 +13,5 @@ public class ChannelMemberEntity
     public DateTime? TimeStamp { get; set; }
     public DateTime? Created { get; set; }
 
-    public override string ToString() => $"{Id}_{NickName}_{FirstName}_{LastName}_{LastAction}_{TimeStamp.ToString()}_{Created.ToString()}";
+    public override string ToString() => $"{Id}_{NickName}_{FirstName}_{LastName}_{LastAction}_{TimeStamp}_{Created}";
 }
