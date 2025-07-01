@@ -1,0 +1,7 @@
+{
+  "Database": {
+    "BaseConnectionString": "Host=?;Port=?;Username=?;Password=?;Database=?;",
+    "ReadModelConnectionString": "",
+    "EventStorageConnectionString": ""
+  }
+}

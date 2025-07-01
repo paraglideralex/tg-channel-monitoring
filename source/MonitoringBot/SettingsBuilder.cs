@@ -7,6 +7,7 @@ public class SettingsBuilder
 {
     public TelegramBotSettings? TelegramBotSettings { get; private set; }
     public TelegramApiSettings? TelegramApiSettings { get; private set; }
+    public DatabaseSettings? DatabaseSettings { get; private set; }
 
     public void BuildBotSettings(IConfiguration appsettings)
     {
@@ -18,6 +19,13 @@ public class SettingsBuilder
     {
         TelegramApiSettings = appsettings.GetSection("TelegramApi").Get<TelegramApiSettings>()
             ?? throw new InvalidDataException($"{nameof(TelegramApiSettings)} section doesn't exist.");
+    }
+
+    public void BuildDatabaseSettings(IConfiguration appsettings)
+    {
+        DatabaseSettings = appsettings.GetSection("Database").Get<DatabaseSettings>()
+            ?? throw new InvalidDataException($"{nameof(DatabaseSettings)} section doesn't exist.");
+
     }
 
     public void Build()
@@ -36,5 +44,6 @@ public class SettingsBuilder
 
         BuildBotSettings(appsettings);
         BuildApiSettings(appsettings);
+        BuildDatabaseSettings(appsettings);
     }
 }

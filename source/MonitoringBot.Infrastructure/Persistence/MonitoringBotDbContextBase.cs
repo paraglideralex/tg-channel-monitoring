@@ -13,8 +13,19 @@ public class MonitoringBotDbContextBase: DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<ChannelMemberEntity>().HasKey(u => u.Id);
-        modelBuilder.Entity<EventEntity>()
+        modelBuilder.Entity<ChannelMemberEntity>()
             .HasKey(u => u.Id);
+
+        modelBuilder.Entity<EventEntity>(entity =>
+        {
+            modelBuilder.Entity<EventEntity>()
+                .HasKey(u => u.Id);
+            modelBuilder.Entity<EventEntity>()
+                .HasIndex(e => e.SequenceNumber);
+
+            entity.Property(e => e.SequenceNumber)
+                .ValueGeneratedOnAdd()
+                .UseIdentityByDefaultColumn();
+        });
     }
 }

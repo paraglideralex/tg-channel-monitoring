@@ -3,6 +3,7 @@
 public class EventEntity
 {
     public Guid Id { get; set; }
+    public long SequenceNumber { get; }
     public string AggregateNameProjection { get; set; } = null!;
     public string EntityType { get; set; } = null!;
     public string EventType { get; set; } = null!;

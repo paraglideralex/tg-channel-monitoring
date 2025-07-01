@@ -1,8 +1,6 @@
 ﻿using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Projections;
 
-using System.Text.Json;
-
 namespace MonitoringBot.Application.Queries.Events;
 
 public sealed class UsersCountForPeriodCore

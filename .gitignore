@@ -27,3 +27,6 @@ appsettings.Production.json
 logs/
 Logs/
 launchSettings.json
+databaseSettings.Development.json
+databaseSettings.Production.json
+testDatabaseSettings.Development.json
