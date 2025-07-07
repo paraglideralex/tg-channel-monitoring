@@ -1,4 +1,6 @@
 ﻿using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
+using MonitoringBot.Infrastructure.Settings;
+
 using Serilog;
 
 using WTelegram;
@@ -10,6 +12,7 @@ public class ConfigurableTelegramApiService
     protected readonly TelegramConfig config;
     protected readonly Client client;
     protected readonly string channelReference;
+    protected bool loggedIn = false;
 
     protected string GetVerificationCode()
     {
@@ -43,13 +46,14 @@ public class ConfigurableTelegramApiService
     public virtual async Task LoginAsync()
     {
         var user = await client.LoginUserIfNeeded();
+        loggedIn = true;
         Log.Information($"✅ Logged in as: {user.username ?? user.first_name}");
     }
 
-    public ConfigurableTelegramApiService(TelegramConfig config, string? channelReference)
+    public ConfigurableTelegramApiService(TelegramConfig config, TelegramApiSettings settings)
     {
         this.config = config;
-        this.channelReference = channelReference ?? throw new InvalidOperationException("конфиг юзера не задан!!");
+        this.channelReference = settings.ChannelReferenceLink ?? throw new InvalidOperationException("конфиг юзера не задан!!");
         client = new Client(ResolveConfig);
     }
 }

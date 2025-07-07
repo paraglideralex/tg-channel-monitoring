@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Infrastructure.Extensions;
+using MonitoringBot.Infrastructure.Settings;
 
 using Serilog;
 
@@ -11,10 +12,10 @@ public class MessagesSendingService // TODO: в будущем получать 
 {
     public MessagesSendingService(
         TelegramBotClient telegramBotClient,
-        List<long> botUsers)
+        TelegramBotSettings telegramApiSettings)
     {
         this.telegramBotClient = telegramBotClient;
-        this.botUsers = botUsers;
+        this.botUsers = telegramApiSettings.ChatIdsCollection;
     }
 
     protected TelegramBotClient telegramBotClient;

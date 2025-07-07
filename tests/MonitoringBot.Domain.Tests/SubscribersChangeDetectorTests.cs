@@ -31,7 +31,7 @@ public class SubscribersChangeDetectorTests
         ];
 
         timeProviderMock = new Mock<ITimeProvider>();
-        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
+        timeProviderMock.Setup(x => x.UtcNow).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
 
         subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(timeProviderMock.Object);
         //subscriber = new ProcessorSubscriber();
@@ -139,14 +139,14 @@ public class SubscribersChangeDetectorTests
     }
 
     [Test]
-    public async Task SecondExist_FirstLeft_ThirdForthJoined()
+    public async Task SecondExists_FirstLeft_ThirdForthJoined()
     {
         // Arrange
         var fromRepository = new List<ChannelMember>() { allChannelMembers![0], allChannelMembers[1] };
         var fromApi = new List<ChannelMember>() { allChannelMembers[1], allChannelMembers[2], allChannelMembers[3] };
 
         // Act
-        subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
+        var result = subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
 
         // Assert
         //Assert.That(subscriber!.Left, Is.Not.Null);

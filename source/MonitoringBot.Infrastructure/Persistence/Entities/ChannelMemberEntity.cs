@@ -1,4 +1,4 @@
-﻿namespace MonitoringBot.Infrastructure.Persistence;
+﻿namespace MonitoringBot.Infrastructure.Persistence.Entities;
 
 public class ChannelMemberEntity
 {

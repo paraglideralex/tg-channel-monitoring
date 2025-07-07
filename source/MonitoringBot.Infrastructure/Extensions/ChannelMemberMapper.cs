@@ -1,6 +1,6 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure;
-using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.Persistence.Entities;
 
 public static class ChannelMemberMapper
 {

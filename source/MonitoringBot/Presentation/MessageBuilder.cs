@@ -32,11 +32,11 @@ public class MessageBuilder(
         sb.AppendLine($"Количество текущих подписчиков на бота: {botSubscribersCount}");
         sb.AppendLine($"Запущен: {startWorkingTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
         sb.AppendLine($"Статус инициализации: {state.IsInitialized}");
-        sb.AppendLine($"Продолжительность работы: '{(timeProvider.Now - startWorkingTimeStamp).FormattedDuration()}'");
+        sb.AppendLine($"Продолжительность работы: '{(timeProvider.UtcNow - startWorkingTimeStamp).FormattedDuration()}'");
         sb.AppendLine($"Последний успешный поиск подписчиков: {state.LastSearchParticipantsTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
         sb.AppendLine($"Канал: {channelReference}");
         sb.AppendLine($"Среда: {Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")}");
-        sb.AppendLine($"Инфа от: {timeProvider.Now.ToString("dd.MM.yyyy HH:mm")}");
+        sb.AppendLine($"Инфа от: {timeProvider.UtcNow.ToString("dd.MM.yyyy HH:mm")}");
         return sb.ToString();
     }
 
@@ -149,7 +149,7 @@ public class MessageBuilder(
         DateTime? fromDateTimeNonInclusive = null,
         TimeSpan? step = null)
     {
-        var actualToDateTimeInclusive = toDateTimeInclusive ?? timeProvider.Now;
+        var actualToDateTimeInclusive = toDateTimeInclusive ?? timeProvider.UtcNow;
         var actualFromDateTimeNonInclusive = fromDateTimeNonInclusive ?? actualToDateTimeInclusive.AddDays(-30);
         var actualStep = step ?? TimeSpan.FromDays(1);
 

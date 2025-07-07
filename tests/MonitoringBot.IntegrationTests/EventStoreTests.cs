@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
-using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 using MonitoringBot.Infrastructure.RepositoriesImplementations;
 using MonitoringBot.Infrastructure.Settings;
 
@@ -48,14 +48,14 @@ public class EventStoreTests: IntegrationTestsBase
 
         var eventsRepo = new EventsRepositoryImplementation<ChannelMember>(context);
 
-        var event1 = new EntitiesChangedDomainEventBase<ChannelMember> { Id = Guid.NewGuid(), ChannelName = "test", EntityIdProjection = "test", EntityNameProjection = "test" };
-        var event2 = new EntitiesChangedDomainEventBase<ChannelMember> { Id = Guid.NewGuid(), ChannelName = "test", EntityIdProjection = "test", EntityNameProjection = "test" };
-        var event3 = new EntitiesChangedDomainEventBase<ChannelMember> { Id= Guid.NewGuid(), ChannelName = "test", EntityIdProjection = "test", EntityNameProjection = "test" };
+        var event1 = new EntitiesChangedDomainEventBase<ChannelMember> { Id = Guid.NewGuid(), ChannelName = "test", EntityIdProjection = "test", EntityNameProjection = "test", TimeStamp = DateTime.UtcNow };
+        var event2 = new EntitiesChangedDomainEventBase<ChannelMember> { Id = Guid.NewGuid(), ChannelName = "test", EntityIdProjection = "test", EntityNameProjection = "test", TimeStamp = DateTime.UtcNow };
+        var event3 = new EntitiesChangedDomainEventBase<ChannelMember> { Id= Guid.NewGuid(), ChannelName = "test", EntityIdProjection = "test", EntityNameProjection = "test", TimeStamp = DateTime.UtcNow };
 
         await eventsRepo.AddRangeAsync([event1]);
         await eventsRepo.AddRangeAsync([event2, event3]);
 
 
-        var all = await dbContext.Events.ToListAsync();
+        var all = await context.Events.ToListAsync();
     }
 }

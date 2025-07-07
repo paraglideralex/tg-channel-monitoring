@@ -1,7 +1,6 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
-using MonitoringBot.Infrastructure.Persistence;
-
+using MonitoringBot.Infrastructure.Persistence.Entities;
 using System.Text.Json;
 
 namespace MonitoringBot.CommonTestUtilities;

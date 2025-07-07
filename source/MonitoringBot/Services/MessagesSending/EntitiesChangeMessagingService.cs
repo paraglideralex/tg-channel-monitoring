@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Application.Events;
+using MonitoringBot.Infrastructure.Settings;
 
 using Telegram.BotAPI;
 
@@ -6,7 +7,8 @@ namespace MonitoringBot.Services.MessagesSending;
 
 public sealed class EntitiesChangeMessagingService<TEntity> : MessagesSendingService
 {
-    public EntitiesChangeMessagingService(TelegramBotClient telegramBotClient, List<long> botUsers) : base(telegramBotClient, botUsers)
+    public EntitiesChangeMessagingService(TelegramBotClient telegramBotClient, TelegramBotSettings telegramBotSettings)
+        : base(telegramBotClient, telegramBotSettings)
     {
     }
 

@@ -24,7 +24,7 @@ public class EventsMonitoringProcessor<TEntity>(
             new GetEventsInPeriodQuery
             {
                 FromNonInclusive = lastCheckTimeStamp,
-                ToInclusive = timeProvider.Now
+                ToInclusive = timeProvider.UtcNow
             });
 
         var joined = new List<TEntity?>();
@@ -58,7 +58,7 @@ public class EventsMonitoringProcessor<TEntity>(
                     nameof(SubscriberJoinedEvent)));
         }
 
-        lastCheckTimeStamp = timeProvider.Now;
+        lastCheckTimeStamp = timeProvider.UtcNow;
     }
 
     private async Task RaiseEntityCollectionChangedEvent(

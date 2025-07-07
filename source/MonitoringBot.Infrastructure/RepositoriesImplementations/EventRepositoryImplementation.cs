@@ -6,17 +6,22 @@ using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Projections;
 using MonitoringBot.Domain.RepositoriesAbstarctions;
 using MonitoringBot.Infrastructure.Extensions;
-using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
+
+using System.Threading;
+using System.Transactions;
 
 namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
 
-public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase dbContext)
+public class EventsRepositoryImplementation<TEntity>(IDbContextFactory<MonitoringBotDbContextBase> factory)
     : EventRepository<TEntity>
 {
     public override async Task AddRangeAsync(IEnumerable<EntitiesChangedDomainEventBase<TEntity>> events, CancellationToken cancellationToken = default)
     {
         var entities = events
             .Select(EntityChangedEventsMapping.ToEntity<EntitiesChangedDomainEventBase<TEntity>, TEntity>).ToList();
+
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
 
         await dbContext.Events.AddRangeAsync(entities, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -27,6 +32,7 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
         DateTime to,
         CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
         var rows = await dbContext.Events
             .Where(e =>
                 e.EntityType == typeof(TEntity).Name &&
@@ -42,6 +48,7 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
         EventsQueryFilter filter,
         CancellationToken cancellationToken = default)
     {
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
         var query = dbContext.Events.AsQueryable();
 
         if(filter.Id is not null)
@@ -70,12 +77,13 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
         long userIdentityProjection,
         CancellationToken cancellation = default)
     {
+        await using var dbContext = await factory.CreateDbContextAsync(cancellation);
         var target = await dbContext.Events
             .AsNoTracking()
             .Where(e => e.EntityIdProjection == userIdentityProjection.ToString() &&
                         e.EventType == eventType)
             .OrderByDescending(e => e.TimeStamp)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellation);
 
         return target is null
             ? null
@@ -87,6 +95,7 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
         DateTime toInclusive,
         CancellationToken cancellation = default)
     {
+        await using var dbContext = await factory.CreateDbContextAsync();
         var target = await dbContext.Events
             .AsNoTracking()
             .Where(e => e.TimeStamp > fromNonInclusive &&
@@ -98,14 +107,22 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
         return target;
     }
 
-    public async Task<long> CountEntitiesIncreaseByPeriodAsync(DateTime dateTimeTo, DateTime? dateTimeFrom = null)
+    public async Task<long> CountEntitiesIncreaseByPeriodAsync(
+        string aggregeteName, 
+        DateTime dateTimeTo, 
+        DateTime? dateTimeFrom = null, 
+        long eventTimeSequenceNumber = 0)
     {
+        await using var dbContext = await factory.CreateDbContextAsync();
         var dateFromSigned = dateTimeFrom ?? DateTime.MinValue;
 
         var result = await dbContext.Events
-            .Where(e => e.TimeStamp < dateTimeTo &&
-                        e.TimeStamp >= dateFromSigned &&
-                        (e.EventType == nameof(SubscriberJoinedEvent) || e.EventType == nameof(SubscriberLeftEvent)))
+            .Where(e =>
+                e.AggregateNameProjection == aggregeteName &&
+                e.TimeStamp > dateFromSigned &&
+                e.CurrentTimeSequenceNumber > eventTimeSequenceNumber &&
+                e.TimeStamp <= dateTimeTo &&
+                (e.EventType == nameof(SubscriberJoinedEvent) || e.EventType == nameof(SubscriberLeftEvent)))
             .GroupBy(e => 1)
             .Select(g => new
             {
@@ -117,5 +134,28 @@ public class EventsRepositoryImplementation<TEntity>(MonitoringBotDbContextBase 
         var activeSubscribers = (result?.Joined ?? 0) - (result?.Left ?? 0);
 
         return activeSubscribers;
+    }
+
+    public override async Task<IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>>> GetEventsFromLastSnapshotAsync(
+        AggregateSnapshot aggregateSnapshot,
+        DateTime dateTimeTo,
+        CancellationToken cancellation = default)
+    {
+        await using var dbContext = await factory.CreateDbContextAsync();
+        var result = await dbContext.Events
+            .Where(e =>
+                e.AggregateNameProjection == aggregateSnapshot.AggregateName &&
+                    (e.TimeStamp > aggregateSnapshot.LastEventTimeStamp ||
+                     e.TimeStamp == aggregateSnapshot.LastEventTimeStamp 
+                        && e.CurrentTimeSequenceNumber > aggregateSnapshot.LastEventSequenceNumberForTimeStamp) &&
+                e.CurrentTimeSequenceNumber > aggregateSnapshot.LastEventSequenceNumberForTimeStamp &&
+                e.TimeStamp <= dateTimeTo &&
+                (e.EventType == nameof(SubscriberJoinedEvent) || e.EventType == nameof(SubscriberLeftEvent)))
+            .OrderBy(e => e.TimeStamp)
+            .ThenBy(e => e.CurrentTimeSequenceNumber)
+            .Select(e => EntityChangedEventsMapping.MapToDomainEvent<TEntity>(e))
+            .ToListAsync();
+
+        return result;
     }
 }

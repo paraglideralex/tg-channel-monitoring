@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Application.Abstractions;
+using MonitoringBot.Application.BackgroundJobs;
 using MonitoringBot.Application.Queries.Projections;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Abstractions;
@@ -6,6 +7,7 @@ using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
+using MonitoringBot.Infrastructure.Settings;
 using MonitoringBot.Presentation;
 using MonitoringBot.Services.MessagesSending;
 
@@ -13,6 +15,7 @@ using Serilog;
 
 using Telegram.BotAPI;
 using Telegram.BotAPI.GettingUpdates;
+
 
 public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     where TEntity : ISearchableEntity
@@ -23,17 +26,17 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery,
         EntitiesChangeMessagingService<ChannelMember> messagesSendingService,
         TelegramBotClient telegramBotClient,
-        FetchUsersBackgroundService fetchUsersBackgroundService,
+        FetchUsersBackgroundServiceBase fetchUsersBackgroundService,
         MessageBuilder messageBuilder,
         SubscribersChangeProcessor subscribersChangeProcessor,
         MonitoringPresentation monitoringPresentation,
-        List<long> chatIdCollection,
-        int checkPeriodSeconds,
-        string channelReference,
         IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor,
         IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService,
         EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer,
-        ITimeProvider timeProvider)
+        ITimeProvider timeProvider,
+        SnapshotCollectingJobScheduler<TEntity, TOnJoinedEvent, TOnLeftEvent> snapshotCollectingJobScheduler,
+        TelegramBotSettings telegramBotSettings,
+        TelegramApiSettings telegramApiSettings)
     {
         this.getAllCurrentSubscribersQuery = getAllCurrentSubscribersQuery;
         this.messagesSendingService = messagesSendingService;
@@ -42,28 +45,29 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         this.messageBuilder = messageBuilder;
         this.subscribersChangeProcessor = subscribersChangeProcessor;
         this.monitoringPresentation = monitoringPresentation;
-        this.chatIdCollection = chatIdCollection;
-        this.checkPeriodSeconds = checkPeriodSeconds;
-        this.channelReference = channelReference;
         this.eventsMonitoringProcessor = eventsMonitoringProcessor;
         this.monitoringService = monitoringService;
         this.entitiesChangeMessageProducer = entitiesChangeMessageProducer;
         this.timeProvider = timeProvider;
+        this.snapshotCollectingJobScheduler = snapshotCollectingJobScheduler;
+        this.telegramBotSettings = telegramBotSettings;
+        this.telegramApiSettings = telegramApiSettings;
     }
 
     private readonly GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
     private readonly EntitiesChangeMessagingService<ChannelMember> messagesSendingService;
     private readonly TelegramBotClient telegramBotClient;
-    private readonly FetchUsersBackgroundService fetchUsersBackgroundService;
+    private readonly FetchUsersBackgroundServiceBase fetchUsersBackgroundService;
     private readonly MessageBuilder messageBuilder;
     private readonly SubscribersChangeProcessor subscribersChangeProcessor;
     private readonly MonitoringPresentation monitoringPresentation;
-    private readonly List<long> chatIdCollection;
-    private readonly string channelReference;
     private readonly IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor;
     private readonly IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService;
     private readonly EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer;
     private readonly ITimeProvider timeProvider;
+    private readonly SnapshotCollectingJobScheduler<TEntity, TOnJoinedEvent, TOnLeftEvent> snapshotCollectingJobScheduler;
+    private readonly TelegramBotSettings telegramBotSettings;
+    private readonly TelegramApiSettings telegramApiSettings;
 
     private int checkPeriodSeconds;
     private DateTime basicTimeStamp;
@@ -72,10 +76,10 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     
     private async Task ProcessMonitoringByPeriodAsync()
     {
-        if ((timeProvider.Now - basicTimeStamp).TotalSeconds > checkPeriodSeconds)
+        if ((timeProvider.UtcNow - basicTimeStamp).TotalSeconds > checkPeriodSeconds)
         {
             await monitoringService.ProcessMonitoringAsync();
-            basicTimeStamp = timeProvider.Now;
+            basicTimeStamp = timeProvider.UtcNow;
         }
     }
 
@@ -97,25 +101,25 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
 
                 string? resultMessage = message switch
                 {
-                    "/info" => messageBuilder.Info(channelReference),
+                    "/info" => messageBuilder.Info(telegramApiSettings.ChannelReferenceLink),
                     "/last" => await messageBuilder.LastAsync(),
                     "/last_subscribed" => await messageBuilder.LastSubscribedAsync(),
                     "/last_unsubscribed" => await messageBuilder.LastUnsubscribedAsync(),
                     "/change_period" => "будет менять период мониторинга",
                     "/check" => await messageBuilder.CheckDiagnosticsAsync(
                                       checkPeriodSeconds, 
-                                      chatIdCollection.Count,
+                                      telegramBotSettings.ChatIdsCollection.Count,
                                       beginWorkingFrom,
                                       fetchUsersBackgroundService.GetState(),
-                                      channelReference),
+                                      telegramApiSettings.ChannelReferenceLink),
                     "/countHistory" => await messageBuilder.CountHistoryAsync(),
                     _ => null
                 };
 
                 long chatId = update.Message.Chat.Id;
-                if (!chatIdCollection.Contains(chatId))
+                if (!telegramBotSettings.ChatIdsCollection.Contains(chatId))
                 {
-                    chatIdCollection.Add(chatId);
+                    telegramBotSettings.ChatIdsCollection.Add(chatId);
                     Log.Information($"В рассылку бота добавлен новый пользователь с Id {chatId}");
                 }
 
@@ -152,8 +156,9 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
 
     public async Task InitializeAsync()
     {
-        basicTimeStamp = timeProvider.Now;
-        beginWorkingFrom = timeProvider.Now;
+        checkPeriodSeconds = telegramBotSettings.CheckPeriodSeconds;
+        basicTimeStamp = timeProvider.UtcNow;
+        beginWorkingFrom = timeProvider.UtcNow;
 
         updates = await telegramBotClient.GetUpdatesAsync();
         await fetchUsersBackgroundService.LoginAsync();
@@ -162,7 +167,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         {
             var message = $"Не удалось корректно инициализировать сервис сбора подписчиков '${nameof(TelegramChannelService)}'.";
             Log.Fatal(message);
-            await messagesSendingService.TrySendMessageForAllAsync(chatIdCollection, message);
+            await messagesSendingService.TrySendMessageForAllAsync(telegramBotSettings.ChatIdsCollection, message);
             return;
         }
 
@@ -179,10 +184,12 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         //eventsMonitoringProcessor.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
         //eventsMonitoringProcessor.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
 
-        await messagesSendingService.TrySendMessageForAllAsync(chatIdCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
+        await messagesSendingService.TrySendMessageForAllAsync(telegramBotSettings.ChatIdsCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");
 
-        await monitoringService.ProcessMonitoringAsync(); // TODO: получить существующих юзеров для мониторинга из базы, когда она таки-будет
+        //await monitoringService.ProcessMonitoringAsync(); // TODO: получить существующих юзеров для мониторинга из базы, когда она таки-будет
+
+        await snapshotCollectingJobScheduler.ScheduleAsync(new() { AggregateName = telegramApiSettings.ChannelReferenceLink, TimeStamp = timeProvider.UtcNow }, new CancellationToken());
     }
 
     public async Task MainLoopAsync()

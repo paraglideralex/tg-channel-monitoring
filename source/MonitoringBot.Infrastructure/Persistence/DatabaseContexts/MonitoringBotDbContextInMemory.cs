@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-namespace MonitoringBot.Infrastructure.Persistence;
+namespace MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 
 public class MonitoringBotDbContextInMemory : MonitoringBotDbContextBase
 {

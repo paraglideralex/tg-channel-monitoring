@@ -36,7 +36,7 @@ public class SubscribersChangeProcessorTests
 
         usersRepositoryMock = new Mock<UserRepository>();
         timeProviderMock = new Mock<ITimeProvider>();
-        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1));
+        timeProviderMock.Setup(x => x.UtcNow).Returns(new DateTime(2025, 1, 1));
 
         addOrUpdateSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepositoryMock.Object, timeProviderMock.Object);
 

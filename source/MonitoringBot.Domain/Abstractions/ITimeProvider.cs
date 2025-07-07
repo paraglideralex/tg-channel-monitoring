@@ -6,4 +6,9 @@ public interface ITimeProvider
     {
         get;
     }
+    public DateTime UtcNow 
+    {
+        get;
+    }
+    public DateTimeOffset UtcDateTimeOffset { get; }
 }

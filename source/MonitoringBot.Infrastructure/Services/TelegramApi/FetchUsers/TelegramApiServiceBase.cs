@@ -2,6 +2,7 @@
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure.Services.FaultSafety;
 using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
+using MonitoringBot.Infrastructure.Settings;
 
 namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
@@ -11,10 +12,10 @@ public abstract class TelegramApiServiceBase : ConfigurableTelegramApiService, I
     protected ITimeProvider timeProvider;
     public TelegramApiServiceBase(
         TelegramConfig config,
-        string? channelReference,
+        TelegramApiSettings settings,
         RetryServiceBase retryService,
         ITimeProvider timeProvider)
-        : base(config, channelReference)
+        : base(config, settings)
     {
         this.retryService = retryService;
         this.timeProvider = timeProvider;
@@ -24,7 +25,7 @@ public abstract class TelegramApiServiceBase : ConfigurableTelegramApiService, I
     {
         IsInitialized = false,
         LastSearchParicipantsDurationSeconds = 0,
-        LastSearchParticipantsTimeStamp = DateTime.Now
+        LastSearchParticipantsTimeStamp = DateTime.UtcNow
     };
 
     public double LastSearchParicipantsDurationSeconds { get; protected set; } = 0;

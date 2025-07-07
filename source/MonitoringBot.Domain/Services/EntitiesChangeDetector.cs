@@ -28,6 +28,7 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
             var joined = ExistInFirstAbsentInSecond(usersCollectionFromApi, usersCollectionFromRepository);
 
             var events = new List<EntitiesChangedDomainEventBase<TEntity>>();
+            int currentTimeSequenceNumber = 0;
 
             events.AddRange(joined.Select(j => new TOnJoinedEventArgs
             {
@@ -35,7 +36,8 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
                 EntityIdProjection = j.IdProjection(),
                 EntityNameProjection = j.NameProjection(),
                 ChannelName = aggregateName,
-                TimeStamp = timeProvider.Now
+                TimeStamp = timeProvider.UtcNow,
+                CurrentTimeSequenceNumber = currentTimeSequenceNumber++
             }));
 
             events.AddRange(left.Select(l => new TOnLeftEventArgs
@@ -44,9 +46,15 @@ public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArg
                 EntityIdProjection = l.IdProjection(),
                 EntityNameProjection = l.NameProjection(),
                 ChannelName = aggregateName,
-                TimeStamp = timeProvider.Now
+                TimeStamp = timeProvider.UtcNow,
+                CurrentTimeSequenceNumber = currentTimeSequenceNumber++
             }));
 
-            return events;
+        // TODO: для данного набора заполнять последовательно поле типа CurrentTimeStampSequenceNumber
+        // искать по двойной сортировке - сначала таймштамп, потом CurrentTimeStampSequenceNumber
+        // так мы не будем завязываться на инфраструктуру и соблюдём уникальность, потому что всё равно
+        // это будет создаваться для одного конкретного агрегата
+
+        return events;
     }
 }

@@ -28,4 +28,9 @@ public abstract class EventRepository<TEntity>
         DateTime fromNonInclusive,
         DateTime toInclusive,
         CancellationToken cancellation = default);
+
+    public abstract Task<IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>>> GetEventsFromLastSnapshotAsync(
+        AggregateSnapshot aggregateSnapshot,
+        DateTime dateTimeTo,
+        CancellationToken cancellation = default);
 }

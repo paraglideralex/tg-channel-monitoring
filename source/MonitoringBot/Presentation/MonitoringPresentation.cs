@@ -1,11 +1,9 @@
-﻿using MonitoringBot.Application.Queries.Events;
-using MonitoringBot.Domain.Entities;
+﻿using MonitoringBot.Domain.Entities;
 
 namespace MonitoringBot.Presentation;
 
 public class MonitoringPresentation(
-    MessageBuilder messageBuilder
-    )
+    MessageBuilder messageBuilder)
 {
     public async Task<string> FormatJoinedUsers(IEnumerable<ChannelMember> usersDifference, string eventType)
     {

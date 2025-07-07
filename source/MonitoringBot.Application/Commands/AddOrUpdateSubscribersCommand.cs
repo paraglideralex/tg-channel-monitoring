@@ -28,7 +28,7 @@ public sealed class AddOrUpdateSubscribersCommand(
 
         if(existingMembers is not null && existingMembers.Count != 0)
         {
-            await userRepository.UpdateRangeAsync(existingMembers, arguments.EventType, timeProvider.Now);
+            await userRepository.UpdateRangeAsync(existingMembers, arguments.EventType, timeProvider.UtcNow);
             Log.Information($"Обновлены пользователи: {string.Join(";", existingMembers.Select(x => x.NickName))}");
         }
 

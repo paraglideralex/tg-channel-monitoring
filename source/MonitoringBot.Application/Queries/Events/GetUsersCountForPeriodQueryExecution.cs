@@ -16,15 +16,13 @@ public sealed class GetUsersCountForPeriodQueryExecution(
 {
     public async Task<DateWithUsersCount[]> ExecuteAsync(GetUsersCountForPeriodQuery query)
     {
-        var countTask = userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent));
-        var eventTypesOrdered = eventsRepository.GetEventTypesInPeriodAsync(
+        var countTask = await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent));
+        var eventTypesOrdered = await eventsRepository.GetEventTypesInPeriodAsync(
             query.FromNonInclusive,
             query.ToInclusive);
 
-        await Task.WhenAll(countTask, eventTypesOrdered);
-
-        var currentCount = countTask.Result;
-        var eventTypesToDate = eventTypesOrdered.Result;
+        var currentCount = countTask;
+        var eventTypesToDate = eventTypesOrdered;
 
         return usersCountForPeriodCore.Execute(currentCount, eventTypesToDate, query.FromNonInclusive, query.ToInclusive, query.Step);
     }

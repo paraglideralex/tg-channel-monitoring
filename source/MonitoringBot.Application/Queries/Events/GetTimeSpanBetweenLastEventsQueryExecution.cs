@@ -21,7 +21,7 @@ public class GetTimeSpanBetweenLastEventsQueryExecution<TEntity>(
             : await eventRepository.GetLatestEventByTypeAndIdentity(opposite, query.UserIdentity);
 
         return previous is not null
-            ? timeProvider.Now - previous?.TimeStamp
+            ? timeProvider.UtcNow - previous?.TimeStamp
             : null;
     }
 

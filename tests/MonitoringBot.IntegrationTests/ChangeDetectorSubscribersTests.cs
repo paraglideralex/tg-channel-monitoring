@@ -7,7 +7,7 @@ using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Services;
-using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.Persistence.Entities;
 using MonitoringBot.Infrastructure.RepositoriesImplementations;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
@@ -24,7 +24,7 @@ public class ChangeDetectorSubscribersTests : IntegrationTestsBase
     public override void SetUp()
     {
         base.SetUp();
-        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1));
+        timeProviderMock.Setup(x => x.UtcNow).Returns(new DateTime(2025, 1, 1));
 
         eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor!.OnSubscribersQuantityChanged;
         eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor!.OnSubscribersQuantityChanged;

@@ -61,18 +61,18 @@ public class QueryMessagesTests : IntegrationTestsBase
         // First joins at first time
         fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot())
             .Returns([new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2024, 1, 1, 3, 3, 5), "test-channel", null)]);
-        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
+        timeProviderMock.Setup(x => x.UtcNow).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
         await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // First leaves
         fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot()).Returns([]);
         timeProviderMock.Reset();
-        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 2, 2, 9, 1, 5));
+        timeProviderMock.Setup(x => x.UtcNow).Returns(new DateTime(2025, 2, 2, 9, 1, 5));
         await subscribersMonitoringService.ProcessMonitoringAsync();
 
         // First joins again
         timeProviderMock.Reset();
-        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 3, 25, 5, 3, 7));
+        timeProviderMock.Setup(x => x.UtcNow).Returns(new DateTime(2025, 3, 25, 5, 3, 7));
         fetchUsersBackgroundServiceMock.Setup(x => x.GetSnapshot())
             .Returns([new(77, "test2", false, "test2", "test2", "79999998889", new DateTime(2025, 3, 25, 5, 3, 7), new DateTime(2025, 3, 25, 5, 3, 7), "test-channel", null)]);
 

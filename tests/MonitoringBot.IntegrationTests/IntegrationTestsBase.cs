@@ -8,9 +8,10 @@ using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.Services;
-using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 using MonitoringBot.Infrastructure.RepositoriesImplementations;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
+using MonitoringBot.Infrastructure.Settings;
 
 using Moq;
 
@@ -77,7 +78,7 @@ public class IntegrationTestsBase
             subscribersChangeDetector,
             addEventsCommand,
             eventsMonitoringProcessor,
-            "test-channel");
+            new TelegramApiSettings { ChannelReferenceLink = "test-channel" });
     }
 
     [TearDown]

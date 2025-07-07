@@ -1,15 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.EntityFrameworkCore;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+
 using MonitoringBot.Infrastructure.Settings;
 
-namespace MonitoringBot.Infrastructure.Persistence;
+namespace MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
+
 public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<MonitoringBotDbContextBase>
 {
     public MonitoringBotDbContextBase CreateDbContext(string[] args)

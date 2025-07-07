@@ -1,5 +1,6 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
+using MonitoringBot.Infrastructure.Settings;
 
 using Serilog;
 
@@ -13,10 +14,10 @@ public abstract class FetchUsersBackgroundServiceBase
     protected CancellationTokenSource cancellationTokenSource = new();
 
     public FetchUsersBackgroundServiceBase() { }
-    public FetchUsersBackgroundServiceBase(TelegramChannelService telegramService, TimeSpan updateInterval)
+    public FetchUsersBackgroundServiceBase(TelegramChannelService telegramService, TelegramBotSettings settings)
     {
         this.telegramService = telegramService;
-        this.updateInterval = updateInterval;
+        this.updateInterval = TimeSpan.FromSeconds(settings.CheckPeriodSeconds);
     }
 
     public abstract Task<bool> InitializeServiceAsync();

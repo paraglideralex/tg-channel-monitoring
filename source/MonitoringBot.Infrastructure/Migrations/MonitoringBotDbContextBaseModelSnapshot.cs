@@ -3,7 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using MonitoringBot.Infrastructure.Persistence;
+using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
@@ -22,7 +22,40 @@ namespace MonitoringBot.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("MonitoringBot.Infrastructure.Persistence.ChannelMemberEntity", b =>
+            modelBuilder.Entity("MonitoringBot.Infrastructure.Persistence.Entities.BotUserEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("FirstName")
+                        .HasColumnType("text");
+
+                    b.Property<bool?>("IsForum")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserName")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id");
+
+                    b.ToTable("BotUsers");
+                });
+
+            modelBuilder.Entity("MonitoringBot.Infrastructure.Persistence.Entities.ChannelMemberEntity", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -59,10 +92,16 @@ namespace MonitoringBot.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Id");
+
+                    b.HasIndex("LastAction");
+
+                    b.HasIndex("TimeStamp");
+
                     b.ToTable("ChannelMembers");
                 });
 
-            modelBuilder.Entity("MonitoringBot.Infrastructure.Persistence.EventEntity", b =>
+            modelBuilder.Entity("MonitoringBot.Infrastructure.Persistence.Entities.EventEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -71,6 +110,9 @@ namespace MonitoringBot.Infrastructure.Migrations
                     b.Property<string>("AggregateNameProjection")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("CurrentTimeSequenceNumber")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Data")
                         .IsRequired()
@@ -92,20 +134,46 @@ namespace MonitoringBot.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<long>("SequenceNumber")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("SequenceNumber"));
-
                     b.Property<DateTime>("TimeStamp")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SequenceNumber");
+                    b.HasIndex("TimeStamp", "CurrentTimeSequenceNumber");
 
                     b.ToTable("Events");
+                });
+
+            modelBuilder.Entity("MonitoringBot.Infrastructure.Persistence.Entities.Snapshots.AggregateSnapshotEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AggregateName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("LastEventSequenceNumberForTimeStamp")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastEventTimeStamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastProcessedEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("TimeStamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("TotalEntities")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastEventTimeStamp");
+
+                    b.ToTable("Snapshots");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,5 +1,3 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace MonitoringBot.Domain.Projections;
+﻿namespace MonitoringBot.Domain.Projections;
 
 public record struct EventTypeWithDate(DateTime TimeStamp, string? EventType);

@@ -30,7 +30,7 @@ public class AddOrUpdateSubscribersCommandTests
             .ReturnsAsync([]);
 
         timeProviderMock = new Mock<ITimeProvider>();
-        timeProviderMock.Setup(x => x.Now).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
+        timeProviderMock.Setup(x => x.UtcNow).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
         addSubscribersCommand = new AddOrUpdateSubscribersCommand(usersRepositoryMock.Object, timeProviderMock.Object);
     }
 
