@@ -8,6 +8,7 @@ using MonitoringBot.Application.BackgroundJobs;
 using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Queries.Events;
 using MonitoringBot.Application.Queries.Projections;
+using MonitoringBot.Application.Queries.Snapshots;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
@@ -142,6 +143,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember>>();
         services.AddTransient<GetUsersCountForPeriodQueryExecution>();
         services.AddTransient<UsersCountForPeriodCore>();
+        services.AddTransient<ClosestSnapshotByTimeQueryExecution>();
 
         services.AddTransient<IEntitiesChangeDetector<ChannelMember>, EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
         services.AddTransient<AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
@@ -161,7 +163,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MonitoringBotRunner<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
 
         // Hosted service
-        services.AddHostedService<MonitoringBotHostedService>();
+        services.AddHostedService<MonitoringBotBackgroundService>();
 
         // Quartz
         services.AddQuartz(q =>

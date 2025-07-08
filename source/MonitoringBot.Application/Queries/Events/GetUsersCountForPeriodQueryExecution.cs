@@ -18,6 +18,7 @@ public sealed class GetUsersCountForPeriodQueryExecution(
     {
         var countTask = await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent));
         var eventTypesOrdered = await eventsRepository.GetEventTypesInPeriodAsync(
+            query.AggregateName,
             query.FromNonInclusive,
             query.ToInclusive);
 

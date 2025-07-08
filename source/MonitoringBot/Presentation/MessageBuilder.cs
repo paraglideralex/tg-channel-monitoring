@@ -1,5 +1,6 @@
 ﻿using MonitoringBot.Application.Queries.Events;
 using MonitoringBot.Application.Queries.Events.Arguments;
+using MonitoringBot.Application.Queries.Snapshots;
 using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
@@ -16,6 +17,7 @@ public class MessageBuilder(
     UserRepository userRepository,
     GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember> getLastPreviousEventQueryExecution,
     GetUsersCountForPeriodQueryExecution getUsersCountForPeriodQueryExecution,
+    ClosestSnapshotByTimeQueryExecution closestSnapshotByTimeQueryExecution,
     ITimeProvider timeProvider)
 {
     public async Task<string> CheckDiagnosticsAsync(int dataUpdatePeriodSeconds, 
@@ -145,6 +147,7 @@ public class MessageBuilder(
     }
 
     public async Task<string> CountHistoryAsync(
+        string aggregateName,
         DateTime? toDateTimeInclusive = null,
         DateTime? fromDateTimeNonInclusive = null,
         TimeSpan? step = null)
@@ -154,7 +157,8 @@ public class MessageBuilder(
         var actualStep = step ?? TimeSpan.FromDays(1);
 
         var queryResult = await getUsersCountForPeriodQueryExecution.ExecuteAsync(new()
-        { 
+        {
+            AggregateName = aggregateName,
             Step = actualStep,
             FromNonInclusive = actualFromDateTimeNonInclusive,
             ToInclusive = actualToDateTimeInclusive
@@ -176,6 +180,36 @@ public class MessageBuilder(
 
         return sb.ToString();
 
+    }
+
+    public async Task<string> HistorySnapshotAsync(string aggregateName, DateTime? timeStamp = null)
+    {
+        (TimeSpan timeSpan, string name) = timeStamp is null
+            ? (TimeSpan.FromDays(7), "Неделю")
+            : (timeProvider.UtcNow - timeStamp.Value, (timeProvider.UtcNow - timeStamp.Value).FormattedDuration());
+
+        var realTimeStamp = timeStamp ?? timeProvider.UtcNow - timeSpan;
+
+        long currentCount = await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent));
+        var snapshot = await closestSnapshotByTimeQueryExecution.ExecuteAsync(
+            new()
+            {
+                AggregateName = aggregateName,
+                TimeStamp = realTimeStamp
+            });
+
+        long? previousCount = snapshot?.TotalEntities;
+
+        if (previousCount is null)
+            return $"Для вывода такой статистики пока недостаточно истории 🧐. Главное, что сейчас нас уже {currentCount}!💅🏻";
+
+        if (currentCount > previousCount)
+            return $"{name} назад нас было {previousCount}, а сейчас уже {currentCount}! Так держать ✊✊";
+
+        if (currentCount < previousCount)
+            return $"В силу деградации человеческих потребностей и оскуднения мышления среднестатистического потребителя" +
+                $"соцсетевого контента наше количество за {name} уменьшилось с {previousCount} до {currentCount} 🤡.";
+        else return $"Вот уже {name} мы стабильно держим отметку в {currentCount} подписчиков👍🏼.";
     }
 
     private string MapActions(string action) => action switch

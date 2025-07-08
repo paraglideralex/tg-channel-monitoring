@@ -21,20 +21,28 @@ public sealed class AggregateSnapshotCreator<TEntity, TOnJoinedEventArgs, TOnLef
         var timeStamp = timeProvider.UtcNow;
         var lastSnapshotByTime = await snapshotRepository.GetClosestPreviousAsync(aggregateName, timeStamp);
 
-        IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> lastEvents = lastSnapshotByTime is null
-            ? await eventRepository.GetEventsByFilterAsync(new EventsQueryFilter
-            {
-                EntityAggregateNameProjection = aggregateName,
-                Toinclusive = timeStamp
-            })
-            : await eventRepository.GetEventsFromLastSnapshotAsync(lastSnapshotByTime, timeStamp);
+        //IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> lastEvents = lastSnapshotByTime is null
+        //    ? await eventRepository.GetEventsByFilterAsync(new EventsQueryFilter
+        //    {
+        //        EntityAggregateNameProjection = aggregateName,
+        //        Toinclusive = timeStamp
+        //    })
+        //    : await eventRepository.GetEventsFromLastSnapshotAsync(lastSnapshotByTime, timeStamp);
+
+        var lastEvents = await eventRepository.GetEventsByFilterAsync(new EventsQueryFilter
+        {
+            EntityAggregateNameProjection = aggregateName,
+            Toinclusive = timeStamp
+        });
 
         if (lastEvents.Count == 0)
             return LastOrDefault(lastSnapshotByTime, aggregateName);
 
         var newCount = entitiesQuantityCounter.EntitiesIncrementByEvents(lastEvents);
 
-        var newTotalCount = lastSnapshotByTime?.TotalEntities ?? 0 + newCount;
+        //var lastSnapshotCount = lastSnapshotByTime?.TotalEntities ?? 0;
+
+        var newTotalCount = newCount;
 
         if (newTotalCount is 0)
             return LastOrDefault(lastSnapshotByTime, aggregateName);

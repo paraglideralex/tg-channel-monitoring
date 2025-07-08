@@ -112,7 +112,8 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                                       beginWorkingFrom,
                                       fetchUsersBackgroundService.GetState(),
                                       telegramApiSettings.ChannelReferenceLink),
-                    "/countHistory" => await messageBuilder.CountHistoryAsync(),
+                    "/count_history" => await messageBuilder.CountHistoryAsync(telegramApiSettings.ChannelReferenceLink),
+                    "/history_snapshot" => await messageBuilder.HistorySnapshotAsync(telegramApiSettings.ChannelReferenceLink),
                     _ => null
                 };
 
@@ -160,6 +161,14 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         basicTimeStamp = timeProvider.UtcNow;
         beginWorkingFrom = timeProvider.UtcNow;
 
+        eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor.OnSubscribersQuantityChanged;
+        eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor.OnSubscribersQuantityChanged;
+
+        eventsMonitoringProcessor.EntitiesJoined += entitiesChangeMessageProducer.OnEntitiesJoined;
+        eventsMonitoringProcessor.EntitiesLeft += entitiesChangeMessageProducer.OnEntitiesLeft;
+
+        entitiesChangeMessageProducer.MessageProduced += messagesSendingService.OnMessageProduced;
+
         updates = await telegramBotClient.GetUpdatesAsync();
         await fetchUsersBackgroundService.LoginAsync();
         bool apiServiceInitializationSuccess = await fetchUsersBackgroundService.InitializeServiceAsync();
@@ -172,17 +181,6 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         }
 
         fetchUsersBackgroundService.Start();
-
-        eventsMonitoringProcessor.EntitiesJoined += subscribersChangeProcessor.OnSubscribersQuantityChanged;
-        eventsMonitoringProcessor.EntitiesLeft += subscribersChangeProcessor.OnSubscribersQuantityChanged;
-
-        eventsMonitoringProcessor.EntitiesJoined += entitiesChangeMessageProducer.OnEntitiesJoined;
-        eventsMonitoringProcessor.EntitiesLeft += entitiesChangeMessageProducer.OnEntitiesLeft;
-
-        entitiesChangeMessageProducer.MessageProduced += messagesSendingService.OnMessageProduced;
-
-        //eventsMonitoringProcessor.EntitiesJoined += messagesSendingService.OnEntitiesJoined;
-        //eventsMonitoringProcessor.EntitiesLeft += messagesSendingService.OnEntitiesLeft;
 
         await messagesSendingService.TrySendMessageForAllAsync(telegramBotSettings.ChatIdsCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
         Log.Information($"{GetType()} загрузился успешно.");

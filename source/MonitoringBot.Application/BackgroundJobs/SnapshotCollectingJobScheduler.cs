@@ -22,8 +22,8 @@ public class SnapshotCollectingJobScheduler<TEntity, TOnJoinedEvent, TOnLeftEven
     public async Task ScheduleAsync(CreateSnapshotArguments arguments, CancellationToken cancellationToken)
     {
         IJobDetail job = JobBuilder.Create<BaseCommandJob<CreateSnapshotCommand<TEntity, TOnJoinedEvent, TOnLeftEvent>, CreateSnapshotArguments>>()
-            .WithIdentity(name: "kek",
-                          group: "kek")
+            .WithIdentity(name: "Create Snapshots Command Job",
+                          group: "Snapshots Infrastructure")
             .StoreDurably()
             .UsingJobData(nameof(JobData.TimeStamp), timeProvider.UtcDateTimeOffset.ToUnixTimeMilliseconds())
             .UsingJobData(
@@ -34,8 +34,8 @@ public class SnapshotCollectingJobScheduler<TEntity, TOnJoinedEvent, TOnLeftEven
             .Build();
 
             ITrigger trigger = TriggerBuilder.Create()
-                .WithIdentity(name: "JobKek",
-                                group: "Jobkek")
+                .WithIdentity(name: "Create Snapshots Command Trigger",
+                                group: "Snapshots Infrastructure")
                 .StartNow()
                 .WithSimpleSchedule(x => x.WithIntervalInSeconds(
                     (int)snapshotCollectingSettings.PeriodSeconds)

@@ -37,6 +37,8 @@ using System.Runtime;
 
 using Telegram.BotAPI;
 
+using TL;
+
 //LoggingSetup.SetupLogging();
 
 //var timeProvider = new SystemTimeProvider();
@@ -208,18 +210,60 @@ settingsBuilder.Build();
 //await monitoringBotRunner.MainLoopAsync();
 //await quartzTask;
 
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//var builder = WebApplication.CreateBuilder(args);
+
+//builder.WebHost.ConfigureKestrel(serverOptions =>
+//{
+//    serverOptions.ListenLocalhost(5000); // слушать 127.0.0.1:5000
+//});
+
+//builder.Logging.ClearProviders();
+//builder.Logging.AddConsole();
+
+
+//builder.Services.AddQuartz(q =>
+//{
+//    q.SchedulerId = settingsBuilder.QuartzSettingsSection.SchedulerId!;
+//    q.SetProperty("quartz.serializer.type", settingsBuilder.QuartzSettingsSection.SerializerType!);
+//    q.SetProperty("quartz.scheduler.instanceName", settingsBuilder.QuartzSettingsSection.InstanceName!);
+//    q.SetProperty("quartz.threadPool.threadCount", settingsBuilder.QuartzSettingsSection.ThreadCount!);
+//});
+
+//builder.Services.AddSingleton(provider =>
+//{
+//    var schedulerFactory = provider.GetRequiredService<ISchedulerFactory>();
+//    var scheduler = schedulerFactory.GetScheduler().Result;
+//    Console.WriteLine("Scheduler инициализирован");
+//    scheduler.Start().Wait();
+//    return scheduler;
+//});
+
+//builder.Services.AddRouting();
+
+
+//var app = builder.Build();
+
+//app.UseCrystalQuartz(
+//    () => app.Services.GetRequiredService<IScheduler>(),
+//    new CrystalQuartzOptions
+//    {
+//        Path = "/quartz"
+//    });
+
+//app.MapGet("/", () => "OK - 5000");
+
+//await app.RunAsync();
+
 var builder = WebApplication.CreateBuilder(args);
-//builder.WebHost.UseUrls("http://localhost:5000");
 
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+//builder.Logging.ClearProviders();
+//builder.Logging.AddConsole();
 
-//builder.WebHost.UseUrls("http://localhost:5000");
-
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    serverOptions.ListenLocalhost(5000); // слушать 127.0.0.1:5000
-});
+//builder.WebHost.ConfigureKestrel(serverOptions =>
+//{
+//    serverOptions.ListenLocalhost(5000); // слушать 127.0.0.1:5000
+//});
 
 LoggingSetup.SetupLogging();
 
@@ -227,31 +271,21 @@ builder.Services.AddMonitoringBotServices(builder.Configuration);
 //builder.Services.AddRouting();
 var app = builder.Build();
 
-app.Use(async (context, next) =>
-{
-    Console.WriteLine($"Запрос: {context.Request.Path}");
-    await next();
-});
-
-app.UseRouting();
 
 app.UseCrystalQuartz(
-    () => app.Services.GetRequiredService<IScheduler>(), 
+    () => app.Services.GetRequiredService<IScheduler>(),
     new CrystalQuartzOptions
     {
         Path = "/quartz"
     });
 
-app.MapGet("/", () => "Hello Quartz!");
+app.MapGet("/", () => "Go to /quartz to see background jobs details.");
 
 
 await ApplyMigrationsIfNeededAsync<MonitoringBotDbContextBase>(app);
 
-
-var addresses = app.Urls;
-app.UseCors(c => c.AllowAnyOrigin());
-await app.RunAsync();
-
+// перед этим ожидается всё то, что происходит в hostedService
+await app.RunAsync(settingsBuilder.QuartzSettingsSection.DebuggerEndpoint);
 
 static async Task ApplyMigrationsIfNeededAsync<T>(WebApplication app) where T : DbContext
 {

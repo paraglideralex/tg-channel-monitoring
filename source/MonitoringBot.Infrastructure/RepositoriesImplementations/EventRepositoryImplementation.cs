@@ -66,7 +66,7 @@ public class EventsRepositoryImplementation<TEntity>(IDbContextFactory<Monitorin
         if (filter.FromNonInclusive is not null)
             query = query.Where(q => q.TimeStamp > filter.FromNonInclusive);
         if (filter.Toinclusive is not null)
-            query = query.Where(q => q.TimeStamp > filter.Toinclusive);
+            query = query.Where(q => q.TimeStamp <= filter.Toinclusive);
 
         var events = await query.ToListAsync(cancellationToken);
         return events.Select(EntityChangedEventsMapping.MapToDomainEvent<TEntity>).ToList();
@@ -91,14 +91,17 @@ public class EventsRepositoryImplementation<TEntity>(IDbContextFactory<Monitorin
     }
 
     public override async Task<List<EventTypeWithDate>> GetEventTypesInPeriodAsync(
+        string aggregateName,
         DateTime fromNonInclusive,
         DateTime toInclusive,
         CancellationToken cancellation = default)
     {
         await using var dbContext = await factory.CreateDbContextAsync();
+
         var target = await dbContext.Events
             .AsNoTracking()
-            .Where(e => e.TimeStamp > fromNonInclusive &&
+            .Where(e => e.AggregateNameProjection == aggregateName &&
+                        e.TimeStamp > fromNonInclusive &&
                         e.TimeStamp <= toInclusive)
             .OrderByDescending(e => e.TimeStamp)
             .Select(e => new EventTypeWithDate(e.TimeStamp, e.EventType))

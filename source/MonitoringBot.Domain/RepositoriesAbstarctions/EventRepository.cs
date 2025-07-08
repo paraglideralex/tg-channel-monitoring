@@ -25,6 +25,7 @@ public abstract class EventRepository<TEntity>
         CancellationToken cancellation = default);
 
     public abstract Task<List<EventTypeWithDate>> GetEventTypesInPeriodAsync(
+        string aggregateName,
         DateTime fromNonInclusive,
         DateTime toInclusive,
         CancellationToken cancellation = default);

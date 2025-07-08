@@ -23,7 +23,21 @@ public class MonitoringBotHostedService : IHostedService
         var runner = scope.ServiceProvider.GetRequiredService<MonitoringBotRunner<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
 
         await runner.InitializeAsync();
-        await runner.MainLoopAsync(); // фоновый запуск без ожидания завершения
+        await StartMonitoringBotAsync(cancellationToken);// _ = Task.Run(() => StartMonitoringBotAsync(cancellationToken));
+    }
+
+    private async Task StartMonitoringBotAsync(CancellationToken cancellationToken)
+    {
+        // Создаём scope
+        using var scope = _scopeFactory.CreateScope();
+
+        // Извлекаем нужные зависимости
+        var runner = scope.ServiceProvider.GetRequiredService<MonitoringBotRunner<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
+
+        await runner.InitializeAsync();
+
+        // Запускаем основной цикл (не блокируя выполнение)
+        await runner.MainLoopAsync(); // Возвращаем задачу, но не ждём её
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
