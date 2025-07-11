@@ -12,8 +12,8 @@ using Serilog;
 namespace MonitoringBot.Application.Services;
 
 public class SubscribersMonitoringService(FetchUsersBackgroundServiceBase fetchUsersBackgroundService,
-    GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery,
-    IEntitiesChangeDetector<ChannelMember> entityChangeDetector,
+    GetAllCurrentSubscribersIdentitiesQuery getAllCurrentSubscribersIdentitiesQuery,
+    IEntitiesChangeDetector<long> entityChangeDetector,
     AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand,
     IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor,
     TelegramApiSettings telegramApiSettings
@@ -21,16 +21,21 @@ public class SubscribersMonitoringService(FetchUsersBackgroundServiceBase fetchU
 {
     public async Task ProcessMonitoringAsync()
     {
-        var apiUsers = fetchUsersBackgroundService.GetSnapshot();
-        if (apiUsers is null)
+        var currentIdentities = fetchUsersBackgroundService.GetExistingIdentities();
+        if (currentIdentities is null)
         {
             Log.Warning("Неполадки на стороне сервиса Tg API, подписчики не получены из телеграм-канала.");
             return;
         }
 
-        var databaseUsers = await getAllCurrentSubscribersQuery.ExecuteAsync();
+        var repositoryIdentities = await getAllCurrentSubscribersIdentitiesQuery.ExecuteAsync();
 
-        var result = entityChangeDetector.ProduceEvents(apiUsers, databaseUsers, telegramApiSettings.ChannelReferenceLink);
+        var result = entityChangeDetector.FindChanges(currentIdentities, repositoryIdentities, telegramApiSettings.ChannelReferenceLink);
+
+        var joinedEntities = 
+
+            // TODO: тут будет работать уже процессор
+
         var addResult = await addEventsCommand.ExecuteAsync(result);
 
         await eventsMonitoringProcessor.ExecuteMonitoringAsync();

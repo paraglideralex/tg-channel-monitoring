@@ -27,4 +27,5 @@ public abstract class UserRepository
 
     public abstract Task<List<ChannelMember>> TakeLast(int count = 5);
     public abstract Task<List<ChannelMember>> TakeLastByAction(string lastAction, int count = 5);
+    public abstract Task<List<long>> AllSubscribedIdentities();
 }

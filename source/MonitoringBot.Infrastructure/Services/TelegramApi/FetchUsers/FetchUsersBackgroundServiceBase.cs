@@ -25,7 +25,7 @@ public abstract class FetchUsersBackgroundServiceBase
     public abstract void Start();
 
     public abstract void Stop();
-
+    public abstract List<long> GetExistingIdentities();
     public abstract List<ChannelMember> GetSnapshot();
     public abstract TelegramServiceState GetState();
 

@@ -18,6 +18,9 @@ public class FetchUsersBackgroundService : FetchUsersBackgroundServiceBase
 
     public override void Stop() => cancellationTokenSource.Cancel();
 
+    // TODO: The target scenario is to fetch them from the Telegram API snapshot database via the repository.
+    // Currently, users are stored in memory, which makes me feel painful but not painful enough to improve it right now o_O
     public override List<ChannelMember> GetSnapshot() => currentUsers;
+    public override List<long> GetExistingIdentities() => currentUsers.Select(u => u.Id).ToList();
     public override TelegramServiceState GetState() => telegramService.State;
 }

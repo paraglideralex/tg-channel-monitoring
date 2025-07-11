@@ -207,4 +207,14 @@ public class UsersRepositoryInMemoryImplementation(
             .Where(cm => cm.LastAction == nameof(SubscriberJoinedEvent))
             .Select(u => u.ToDomain()).ToListAsync();
     }
+
+    public override async Task<List<long>> AllSubscribedIdentities()
+    {
+        await using var context = await factory.CreateDbContextAsync();
+
+        return await context.ChannelMembers
+            .AsNoTracking()
+            .Where(cm => cm.LastAction == nameof(SubscriberJoinedEvent))
+            .Select(u => u.Id).ToListAsync();
+    }
 }

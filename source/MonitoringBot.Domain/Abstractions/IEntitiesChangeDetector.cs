@@ -1,13 +1,11 @@
-﻿using MonitoringBot.Domain.Events;
-
-using System.Collections.Generic;
+﻿using MonitoringBot.Domain.Projections;
 
 namespace MonitoringBot.Domain.Abstractions;
 
-public interface IEntitiesChangeDetector<TEntity>
+public interface IEntitiesChangeDetector<TIdentity>
 {
-    public IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> ProduceEvents(
-        IEnumerable<TEntity> usersCollectionFromApi,
-        IEnumerable<TEntity> usersCollectionFromRepository,
+    public EntitiesChanges<TIdentity> FindChanges(
+        IEnumerable<TIdentity> usersCollectionFromApi,
+        IEnumerable<TIdentity> usersCollectionFromRepository,
         string aggregateName);
 }

@@ -140,11 +140,18 @@ public class TelegramChannelService : TelegramApiServiceBase
                 ccp = await client.Channels_GetParticipants(channel, filter, offset, 1024, 0);
                 if (ccp.count > maxCount) maxCount = ccp.count;
                 foreach (var kvp in ccp.chats) result.chats[kvp.Key] = kvp.Value;
+                // TODO: this should be uploaded to database too each recursive step as API users snapshot.
                 foreach (var kvp in ccp.users) result.users[kvp.Key] = kvp.Value;
                 lock (participants)
                     foreach (var participant in ccp.participants)
                         if (user_ids.Add(participant.UserId))
+                        {
+                            // TODO: Ideally, at this moment we should load this batch of users into the database instead of sequentially accumulating them in RAM.
+                            // With channels exceeding 1M subscribers, current implementation could easily lead to OutOfMemoryException.
+                            // One channel entity weights about 400 bytes. So, 10M subscribers leads to ~3.7 Gb RAM bloat
                             participants.Add(participant);
+                        }
+
                 offset += ccp.participants.Length;
                 if (offset >= ccp.count || ccp.participants.Length == 0) break;
             }
@@ -187,7 +194,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         List<ChannelMember> members = [];
 
         using var timer = new ExecutionTimer(
-            "Безопасный поиск всех подписчиков",
+            "Safe search of all participants",
             t => State.LastSearchParicipantsDurationSeconds = t.TotalSeconds);
 
         var participants = await TryGetChannelMembersAsync(channel);
@@ -200,10 +207,38 @@ public class TelegramChannelService : TelegramApiServiceBase
         foreach (var user in result)
             members.Add(ToChannelMember(user));
 
+        var members2 = participants.participants.Select(m => ToTLUser(m, participants.users, channelReference)).ToList();
+
         State.LastSearchParticipantsTimeStamp = timeProvider.UtcNow;
         Log.Debug($"Найдено {result.Count} участников канала");
 
         return members;
+    }
+
+    public TLUser ToTLUser(ChannelParticipantBase participantBase, Dictionary<long, User> usersDictionary, string channelReference)
+    {
+        _ = usersDictionary.TryGetValue(participantBase.UserId, out var user);
+        if (user == null)
+        {
+            Log.Error($"User with identity {participantBase.UserId} was not found in users collection!");
+            return new()
+            {
+                Id = participantBase.UserId
+            };
+        }
+
+        return new()
+        {
+            Id = user.ID,
+            ChannelReference = channelReference,
+            FirstName = user.first_name,
+            LastName = user.last_name,
+            IsBot = user.IsBot,
+            NickName = user.MainUsername,
+            Phone = user.phone,
+            TimeStampTicks = timeProvider.UtcNow.Ticks,
+            JoinedTicks = participantBase.IsAdmin ? null : (participantBase as ChannelParticipant)?.date.Ticks
+        };
     }
 
     public override void Dispose() => client.Dispose();
@@ -221,4 +256,17 @@ public class TelegramChannelService : TelegramApiServiceBase
         channelReference,
         null
     );
+}
+
+public sealed record TLUser
+{
+    public long Id { get; init; }
+    public string? NickName { get; init; }
+    public bool IsBot { get; init; }
+    public string? FirstName { get; init; }
+    public string? LastName { get; init; }
+    public string? Phone { get; init; }
+    public string? ChannelReference { get; init; }
+    public long? JoinedTicks { get; init; }
+    public long? TimeStampTicks { get; init; }
 }

@@ -1,6 +1,5 @@
 ﻿using MonitoringBot.Application.Abstractions;
 using MonitoringBot.Application.BackgroundJobs;
-using MonitoringBot.Application.Queries.Projections;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
@@ -23,13 +22,11 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     where TOnLeftEvent : EntitiesChangedDomainEventBase<TEntity>, new()
 {
     public MonitoringBotRunner(
-        GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery,
         EntitiesChangeMessagingService<ChannelMember> messagesSendingService,
         TelegramBotClient telegramBotClient,
         FetchUsersBackgroundServiceBase fetchUsersBackgroundService,
         MessageBuilder messageBuilder,
         SubscribersChangeProcessor subscribersChangeProcessor,
-        MonitoringPresentation monitoringPresentation,
         IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor,
         IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService,
         EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer,
@@ -38,13 +35,11 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         TelegramBotSettings telegramBotSettings,
         TelegramApiSettings telegramApiSettings)
     {
-        this.getAllCurrentSubscribersQuery = getAllCurrentSubscribersQuery;
         this.messagesSendingService = messagesSendingService;
         this.telegramBotClient = telegramBotClient;
         this.fetchUsersBackgroundService = fetchUsersBackgroundService;
         this.messageBuilder = messageBuilder;
         this.subscribersChangeProcessor = subscribersChangeProcessor;
-        this.monitoringPresentation = monitoringPresentation;
         this.eventsMonitoringProcessor = eventsMonitoringProcessor;
         this.monitoringService = monitoringService;
         this.entitiesChangeMessageProducer = entitiesChangeMessageProducer;
@@ -54,13 +49,11 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         this.telegramApiSettings = telegramApiSettings;
     }
 
-    private readonly GetAllCurrentSubscribersQuery getAllCurrentSubscribersQuery;
     private readonly EntitiesChangeMessagingService<ChannelMember> messagesSendingService;
     private readonly TelegramBotClient telegramBotClient;
     private readonly FetchUsersBackgroundServiceBase fetchUsersBackgroundService;
     private readonly MessageBuilder messageBuilder;
     private readonly SubscribersChangeProcessor subscribersChangeProcessor;
-    private readonly MonitoringPresentation monitoringPresentation;
     private readonly IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor;
     private readonly IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent> monitoringService;
     private readonly EntitiesChangeMessageProducer<ChannelMember> entitiesChangeMessageProducer;
