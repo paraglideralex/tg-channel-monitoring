@@ -92,6 +92,13 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
 
                 Log.Information($"От пользователя {update!.Message!.Chat.Id} получена команда {message}.");
 
+                long chatId = update.Message.Chat.Id;
+                if (!telegramBotSettings.ChatIdsCollection.Contains(chatId))
+                {
+                    telegramBotSettings.ChatIdsCollection.Add(chatId);
+                    Log.Information($"В рассылку бота добавлен новый пользователь с Id {chatId}");
+                }
+
                 string? resultMessage = message switch
                 {
                     "/info" => messageBuilder.Info(telegramApiSettings.ChannelReferenceLink),
@@ -109,13 +116,6 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                     "/history_snapshot" => await messageBuilder.HistorySnapshotAsync(telegramApiSettings.ChannelReferenceLink),
                     _ => null
                 };
-
-                long chatId = update.Message.Chat.Id;
-                if (!telegramBotSettings.ChatIdsCollection.Contains(chatId))
-                {
-                    telegramBotSettings.ChatIdsCollection.Add(chatId);
-                    Log.Information($"В рассылку бота добавлен новый пользователь с Id {chatId}");
-                }
 
                 if (resultMessage is not null)
                 {

@@ -1,11 +1,12 @@
-﻿using MonitoringBot.Domain.Events;
+﻿using MonitoringBot.Domain.Abstractions;
+using MonitoringBot.Domain.Events;
 
 namespace MonitoringBot.Application.Abstractions;
 
-public interface IEntitiesChangeEventsCreator<TIdentity, TEntity>
+public interface IEntitiesChangeEventsCreator<TEntity>
 {
     public IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> ProduceEvents(
-        IEnumerable<TIdentity> usersIdsFromApi,
-        IEnumerable<TIdentity> usersIdsFromRepository,
+        IEnumerable<TEntity> usersIdsFromApi,
+        IEnumerable<TEntity> usersIdsFromRepository,
         string aggregateName);
 }

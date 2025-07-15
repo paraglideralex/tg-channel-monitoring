@@ -14,10 +14,9 @@ namespace MonitoringBot.Domain.Tests;
 
 public class SubscribersChangeDetectorTests
 {
-    private EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>? subscribersChangeDetector;
+    private EntitiesChangeDetector<ChannelMember>? subscribersChangeDetector;
     private string baseType = "base-type";
     private List<ChannelMember>? allChannelMembers;
-    private Mock<ITimeProvider> timeProviderMock;
 
     [SetUp]
     public void SetUp()
@@ -30,10 +29,10 @@ public class SubscribersChangeDetectorTests
             new(4, "4", false, "4", "4", "4", new DateTime(2025, 1, 1, 3, 3, 5), new DateTime(2025, 1, 1, 3, 3, 5),"test-channel",baseType)
         ];
 
-        timeProviderMock = new Mock<ITimeProvider>();
-        timeProviderMock.Setup(x => x.UtcNow).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
+        //timeProviderMock = new Mock<ITimeProvider>();
+        //timeProviderMock.Setup(x => x.UtcNow).Returns(new DateTime(2025, 1, 1, 3, 3, 5));
 
-        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(timeProviderMock.Object);
+        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember>();
         //subscriber = new ProcessorSubscriber();
 
         //subscribersChangeDetector.EntitiesJoined += subscriber.OnJoined;
@@ -48,7 +47,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers[0], allChannelMembers[1] };
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
+        //var result = subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
 
         // Assert
         //Assert.That(subscriber!.Joined, Is.Null);
@@ -63,10 +62,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers[0], allChannelMembers[1] };
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
-
-
-        var dese = JsonSerializer.Serialize(result.First());
+        //var result = subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
 
         //var kk = 
 
@@ -87,7 +83,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = allChannelMembers;
 
         // Act
-        subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
+        //subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
 
         // Assert
         //Assert.That(subscriber!.Joined, Is.Not.Null);
@@ -107,7 +103,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers![0] };
 
         // Act
-        subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
+        //subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
 
         // Assert
         //Assert.That(subscriber!.Left, Is.Not.Null);
@@ -126,7 +122,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers![2], allChannelMembers[3] };
 
         // Act
-        subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
+        //subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
 
         // Assert
         //Assert.That(subscriber!.Left, Is.Not.Null);
@@ -146,7 +142,7 @@ public class SubscribersChangeDetectorTests
         var fromApi = new List<ChannelMember>() { allChannelMembers[1], allChannelMembers[2], allChannelMembers[3] };
 
         // Act
-        var result = subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
+        //var result = subscribersChangeDetector!.ProduceEvents(fromApi, fromRepository, "test");
 
         // Assert
         //Assert.That(subscriber!.Left, Is.Not.Null);

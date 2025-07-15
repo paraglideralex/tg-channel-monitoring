@@ -1,5 +1,6 @@
 ﻿using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
+using MonitoringBot.Infrastructure.Persistence.Entities;
 using MonitoringBot.Infrastructure.Services.FaultSafety;
 using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 using MonitoringBot.Infrastructure.Settings;
@@ -30,7 +31,7 @@ public abstract class TelegramApiServiceBase : ConfigurableTelegramApiService, I
 
     public double LastSearchParicipantsDurationSeconds { get; protected set; } = 0;
     public abstract Task<bool> InitializeChannelAsync();
-    public abstract Task<List<ChannelMember>?> GetChannelMembersAsync();
+    public abstract Task<List<TLUser>?> GetChannelMembersAsync();
 
     public abstract void Dispose();
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MonitoringBot.Infrastructure.Migrations
 {
     [DbContext(typeof(MonitoringBotDbContextBase))]
-    partial class MonitoringBotDbContextBaseModelSnapshot : ModelSnapshot
+    [Migration("20250715122328_ApiUsersTable")]
+    partial class ApiUsersTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -25,7 +28,10 @@ namespace MonitoringBot.Infrastructure.Migrations
             modelBuilder.Entity("MonitoringBot.Infrastructure.Persistence.Entities.ApiUserEntity", b =>
                 {
                     b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("ChannelReference")
                         .HasColumnType("text");

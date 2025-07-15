@@ -26,7 +26,7 @@ public class AddOrUpdateSubscribersCommandTests
     {
         baseChannelMembers = [new(2, "2", false, "2", "1", "1", new DateTime(2025,1,1,3,3,3), new DateTime(2025,1,1,3,3,3),"test-channel", "old-event")];
         usersRepositoryMock = new Mock<UserRepository>();
-        usersRepositoryMock.Setup(x => x.FindByIds(It.IsAny<IEnumerable<long>>()))
+        usersRepositoryMock.Setup(x => x.FindByIdsAsync(It.IsAny<IEnumerable<long>>()))
             .ReturnsAsync([]);
 
         timeProviderMock = new Mock<ITimeProvider>();
@@ -66,7 +66,7 @@ public class AddOrUpdateSubscribersCommandTests
             users,
             baseEventType);
 
-        usersRepositoryMock.Setup(x => x.FindByIds(It.IsAny<IEnumerable<long>>()))
+        usersRepositoryMock.Setup(x => x.FindByIdsAsync(It.IsAny<IEnumerable<long>>()))
             .ReturnsAsync(baseChannelMembers);
 
         var result = await addSubscribersCommand!.ExecuteAsync(args);
@@ -89,7 +89,7 @@ public class AddOrUpdateSubscribersCommandTests
             users,
             baseEventType);
 
-        usersRepositoryMock.Setup(x => x.FindByIds(It.IsAny<IEnumerable<long>>()))
+        usersRepositoryMock.Setup(x => x.FindByIdsAsync(It.IsAny<IEnumerable<long>>()))
             .ReturnsAsync(baseChannelMembers);
 
         var result = await addSubscribersCommand!.ExecuteAsync(args);

@@ -16,27 +16,31 @@ public class SubscribersMonitoringService(FetchUsersBackgroundServiceBase fetchU
     IEntitiesChangeDetector<long> entityChangeDetector,
     AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand,
     IEventsMonitoringProcessor<ChannelMember> eventsMonitoringProcessor,
-    TelegramApiSettings telegramApiSettings
+    TelegramApiSettings telegramApiSettings,
+    GetSubscribersByIdentitiesQuery getSubscribersByIdentitiesQuery,
+    IEntitiesChangeEventsCreator<ChannelMember> entitiesChangeEventsCreator
     ) : IMonitoringService<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>
 {
     public async Task ProcessMonitoringAsync()
     {
-        var currentIdentities = fetchUsersBackgroundService.GetExistingIdentities();
-        if (currentIdentities is null)
+        var idsFromApi = await fetchUsersBackgroundService.GetExistingIdentitiesAsync();
+        if (idsFromApi is null)
         {
             Log.Warning("Неполадки на стороне сервиса Tg API, подписчики не получены из телеграм-канала.");
             return;
         }
 
-        var repositoryIdentities = await getAllCurrentSubscribersIdentitiesQuery.ExecuteAsync();
+        var idsFromRepository = await getAllCurrentSubscribersIdentitiesQuery.ExecuteAsync();
 
-        var result = entityChangeDetector.FindChanges(currentIdentities, repositoryIdentities, telegramApiSettings.ChannelReferenceLink);
+        var changes = entityChangeDetector.FindChanges(idsFromApi, idsFromRepository, telegramApiSettings.ChannelReferenceLink);
 
-        var joinedEntities = 
+        var joinedEntities = await fetchUsersBackgroundService.GetByIdsAsync(changes.EntitiesJoined);
+        var leftEntities = await getSubscribersByIdentitiesQuery.ExecuteAsync(changes.EntitiesLeft);
 
-            // TODO: тут будет работать уже процессор
+        var eventsToBeProduced = entitiesChangeEventsCreator.ProduceEvents(joinedEntities, leftEntities, 
+            telegramApiSettings.ChannelReferenceLink);
 
-        var addResult = await addEventsCommand.ExecuteAsync(result);
+        var addResult = await addEventsCommand.ExecuteAsync(eventsToBeProduced);
 
         await eventsMonitoringProcessor.ExecuteMonitoringAsync();
     }

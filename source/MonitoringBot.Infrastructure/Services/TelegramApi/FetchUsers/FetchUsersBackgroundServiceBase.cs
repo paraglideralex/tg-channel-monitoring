@@ -1,4 +1,6 @@
-﻿using MonitoringBot.Domain.Entities;
+﻿using MonitoringBot.Domain.Abstractions;
+using MonitoringBot.Domain.Entities;
+using MonitoringBot.Domain.RepositoriesAbstarctions;
 using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 using MonitoringBot.Infrastructure.Settings;
 
@@ -8,16 +10,23 @@ namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
 public abstract class FetchUsersBackgroundServiceBase
 {
-    protected volatile List<ChannelMember> currentUsers = [];
+    //protected volatile List<ChannelMember> currentUsers = [];
     protected readonly TimeSpan updateInterval;
     protected readonly TelegramApiServiceBase? telegramService;
     protected CancellationTokenSource cancellationTokenSource = new();
+    protected readonly ApiUsersRepository apiUsersRepository;
+    protected readonly ITimeProvider timeProvider;
 
-    public FetchUsersBackgroundServiceBase() { }
-    public FetchUsersBackgroundServiceBase(TelegramChannelService telegramService, TelegramBotSettings settings)
+    public FetchUsersBackgroundServiceBase(
+        TelegramChannelService telegramService,
+        TelegramBotSettings settings,
+        ApiUsersRepository apiUsersRepository,
+        ITimeProvider timeProvider)
     {
         this.telegramService = telegramService;
-        this.updateInterval = TimeSpan.FromSeconds(settings.CheckPeriodSeconds);
+        updateInterval = TimeSpan.FromSeconds(settings.CheckPeriodSeconds);
+        this.apiUsersRepository = apiUsersRepository;
+        this.timeProvider = timeProvider;
     }
 
     public abstract Task<bool> InitializeServiceAsync();
@@ -25,8 +34,9 @@ public abstract class FetchUsersBackgroundServiceBase
     public abstract void Start();
 
     public abstract void Stop();
-    public abstract List<long> GetExistingIdentities();
-    public abstract List<ChannelMember> GetSnapshot();
+    public abstract Task<List<long>> GetExistingIdentitiesAsync();
+    public abstract Task<List<ChannelMember>> GetSnapshot();
+    public abstract Task<List<ChannelMember>> GetByIdsAsync(IReadOnlyCollection<long> idsCollection);
     public abstract TelegramServiceState GetState();
 
     public async Task LoginAsync() => await telegramService.LoginAsync();
@@ -43,7 +53,7 @@ public abstract class FetchUsersBackgroundServiceBase
                     Log.Error("Импорт подписчиков канала не выполнен, подписчики в этот раз не получены из телеграм-канала.");
                 else
                 {
-                    currentUsers = users;
+                    await apiUsersRepository.RefreshUsersAsync(users, timeProvider.UtcNow);
                     Log.Debug($"Успешно загружен новый снапшот из {users.Count} участников канала.");
                 }
             }

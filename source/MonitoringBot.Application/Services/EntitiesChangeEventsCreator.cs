@@ -4,21 +4,18 @@ using MonitoringBot.Domain.Events;
 
 namespace MonitoringBot.Application.Services;
 
-public abstract class EntitiesChangeEventsCreator<TIdentity, TEntity, TOnJoinedEventArgs, TOnLeftEventArgs>(
-    IEntitiesChangeDetector<TIdentity> entitiesChangeDetector,
+public sealed class EntitiesChangeEventsCreator<TEntity, TOnJoinedEventArgs, TOnLeftEventArgs>(
     ITimeProvider timeProvider)
-    : IEntitiesChangeEventsCreator<TIdentity, TEntity>
-    where TEntity : ISearchableEntity
-    where TOnJoinedEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
-    where TOnLeftEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
+    : IEntitiesChangeEventsCreator<TEntity>
+        where TEntity : ISearchableEntity
+        where TOnJoinedEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
+        where TOnLeftEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
 {
     public IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> ProduceEvents(
-        IEnumerable<TIdentity> usersIdsFromApi,
-        IEnumerable<TIdentity> usersIdsFromRepository,
+        IEnumerable<TEntity> joined,
+        IEnumerable<TEntity> left,
         string aggregateName)
     {
-        var detectionResult = entitiesChangeDetector.FindChanges(usersIdsFromApi, usersIdsFromRepository, aggregateName);
-
         var events = new List<EntitiesChangedDomainEventBase<TEntity>>();
         int currentTimeSequenceNumber = 0;
 
@@ -44,7 +41,4 @@ public abstract class EntitiesChangeEventsCreator<TIdentity, TEntity, TOnJoinedE
 
         return events;
     }
-
-    protected abstract Task<IEnumerable<TEntity>> UploadJoinedEntitiesAsync();
-    protected abstract Task<IEnumerable<TEntity>> UploadLeftEntitiesAsync();
 }

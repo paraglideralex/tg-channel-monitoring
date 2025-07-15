@@ -152,16 +152,17 @@ public class UsersRepositoryInMemoryImplementation(
         return entity?.ToDomain();
     }
 
-    public override async Task<List<ChannelMember>> FindByIds(IEnumerable<long> identities)
+    public override async Task<List<ChannelMember>> FindByIdsAsync(IEnumerable<long> identities)
     {
         await using var context = await factory.CreateDbContextAsync();
 
         var entities = await context.ChannelMembers
             .AsNoTracking()
             .Where(u => identities.Contains(u.Id))
+            .Select(u => u.ToDomain())
             .ToListAsync();
 
-        return entities.Select(e => e.ToDomain()).ToList();
+        return entities;
     }
 
     public override async Task<List<ChannelMember>> TakeLast(int count = 5)

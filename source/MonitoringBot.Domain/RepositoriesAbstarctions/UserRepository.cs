@@ -23,7 +23,7 @@ public abstract class UserRepository
     public abstract Task DeleteRangeAsync(IEnumerable<ChannelMember> users);
 
     public abstract Task<ChannelMember?> FindById(long identity);
-    public abstract Task<List<ChannelMember>> FindByIds(IEnumerable<long> identities);
+    public abstract Task<List<ChannelMember>> FindByIdsAsync(IEnumerable<long> identities);
 
     public abstract Task<List<ChannelMember>> TakeLast(int count = 5);
     public abstract Task<List<ChannelMember>> TakeLastByAction(string lastAction, int count = 5);

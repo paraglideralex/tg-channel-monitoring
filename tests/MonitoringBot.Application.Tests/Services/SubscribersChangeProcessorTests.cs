@@ -79,7 +79,7 @@ public class SubscribersChangeProcessorTests
             entitiesDifference: allChannelMembers!,
             eventName);
 
-        usersRepositoryMock.Setup(x => x.FindByIds(It.IsAny<IEnumerable<long>>()))
+        usersRepositoryMock.Setup(x => x.FindByIdsAsync(It.IsAny<IEnumerable<long>>()))
             .ReturnsAsync(allChannelMembers);
 
         // Act

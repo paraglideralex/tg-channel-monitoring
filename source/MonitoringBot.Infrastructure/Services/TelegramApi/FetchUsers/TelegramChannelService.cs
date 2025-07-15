@@ -1,14 +1,13 @@
 ﻿using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure.Diagnostics;
+using MonitoringBot.Infrastructure.Persistence.Entities;
 using MonitoringBot.Infrastructure.Services.FaultSafety;
 using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 using MonitoringBot.Infrastructure.Settings;
 
 using Serilog;
-
-using System;
 
 using TL;
 
@@ -31,7 +30,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         var channel = await TryGetChannelByReferenceAsync(channelReference);
         if (channel is null)
         {
-            Log.Error($"Не удалось найти доступный канал со ссылкой '{channelReference}'");
+            Log.Fatal($"Не удалось найти доступный канал со ссылкой '{channelReference}'");
             return false;
         }
 
@@ -49,7 +48,7 @@ public class TelegramChannelService : TelegramApiServiceBase
 
         if (dialogs is null)
         {
-            Log.Error("Не найдено ни одного диалога.");
+            Log.Fatal("Не найдено ни одного диалога.");
             return null;
         }
 
@@ -140,15 +139,16 @@ public class TelegramChannelService : TelegramApiServiceBase
                 ccp = await client.Channels_GetParticipants(channel, filter, offset, 1024, 0);
                 if (ccp.count > maxCount) maxCount = ccp.count;
                 foreach (var kvp in ccp.chats) result.chats[kvp.Key] = kvp.Value;
-                // TODO: this should be uploaded to database too each recursive step as API users snapshot.
+                // Hack: this should be uploaded to database too each recursive step as API users snapshot.
                 foreach (var kvp in ccp.users) result.users[kvp.Key] = kvp.Value;
                 lock (participants)
                     foreach (var participant in ccp.participants)
                         if (user_ids.Add(participant.UserId))
                         {
-                            // TODO: Ideally, at this moment we should load this batch of users into the database instead of sequentially accumulating them in RAM.
+                            // Hack: Ideally, at this moment we should load this batch of users into the database instead of sequentially accumulating them in RAM.
                             // With channels exceeding 1M subscribers, current implementation could easily lead to OutOfMemoryException.
                             // One channel entity weights about 400 bytes. So, 10M subscribers leads to ~3.7 Gb RAM bloat
+                            // However for channel quantity about 1000 users it works with no problems
                             participants.Add(participant);
                         }
 
@@ -181,7 +181,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         return result;
     }
 
-    public override async Task<List<ChannelMember>?> GetChannelMembersAsync()
+    public override async Task<List<TLUser>?> GetChannelMembersAsync()
     {
         if (channel is null)
         {
@@ -190,8 +190,6 @@ public class TelegramChannelService : TelegramApiServiceBase
 
             return null;
         }
-
-        List<ChannelMember> members = [];
 
         using var timer = new ExecutionTimer(
             "Safe search of all participants",
@@ -204,10 +202,9 @@ public class TelegramChannelService : TelegramApiServiceBase
 
         var result = participants.users.Values;
 
-        foreach (var user in result)
-            members.Add(ToChannelMember(user));
-
-        var members2 = participants.participants.Select(m => ToTLUser(m, participants.users, channelReference)).ToList();
+        var members = participants.participants
+            .Select(m => ToTLUser(m, participants.users, channelReference))
+            .ToList();
 
         State.LastSearchParticipantsTimeStamp = timeProvider.UtcNow;
         Log.Debug($"Найдено {result.Count} участников канала");
@@ -242,31 +239,4 @@ public class TelegramChannelService : TelegramApiServiceBase
     }
 
     public override void Dispose() => client.Dispose();
-
-    public ChannelMember ToChannelMember(User tgUser) => new
-    (
-        tgUser.ID,
-        tgUser.MainUsername,
-        tgUser.IsBot,
-        tgUser.first_name,
-        tgUser.last_name,
-        tgUser.phone,
-        timeProvider.UtcNow,
-        timeProvider.UtcNow,
-        channelReference,
-        null
-    );
-}
-
-public sealed record TLUser
-{
-    public long Id { get; init; }
-    public string? NickName { get; init; }
-    public bool IsBot { get; init; }
-    public string? FirstName { get; init; }
-    public string? LastName { get; init; }
-    public string? Phone { get; init; }
-    public string? ChannelReference { get; init; }
-    public long? JoinedTicks { get; init; }
-    public long? TimeStampTicks { get; init; }
 }

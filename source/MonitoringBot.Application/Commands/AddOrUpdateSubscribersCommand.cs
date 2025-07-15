@@ -24,7 +24,7 @@ public sealed class AddOrUpdateSubscribersCommand(
 
     protected override async Task ExecuteCoreAsync(EntitiesCollectionChangedEventArgs<ChannelMember> arguments)
     {
-        var existingMembers = await userRepository.FindByIds(arguments.EntitiesDifference.Select(x => x.Id));
+        var existingMembers = await userRepository.FindByIdsAsync(arguments.EntitiesDifference.Select(x => x.Id));
 
         if(existingMembers is not null && existingMembers.Count != 0)
         {

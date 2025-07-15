@@ -1,7 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 using MonitoringBot.Application.Abstractions;
 using MonitoringBot.Application.BackgroundJobs;
@@ -114,6 +111,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<EventRepository<ChannelMember>, EventsRepositoryImplementation<ChannelMember>>();
         services.AddTransient<SnapshotRepository, SnapshotRepositoryImplementation>();
         services.AddTransient<UserRepository, UsersRepositoryInMemoryImplementation>();
+        services.AddTransient<ApiUsersRepository,  ApiUsersRepositoryImplementation>();
 
         services.AddTransient<AggregateSnapshotCreator<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
         services.AddTransient<CreateSnapshotCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
@@ -144,10 +142,19 @@ public static class ServiceCollectionExtensions
         services.AddTransient<GetUsersCountForPeriodQueryExecution>();
         services.AddTransient<UsersCountForPeriodCore>();
         services.AddTransient<ClosestSnapshotByTimeQueryExecution>();
+        services.AddTransient<GetSubscribersByIdentitiesQuery>();
+        services.AddTransient<GetAllCurrentSubscribersIdentitiesQuery>();
 
-        services.AddTransient<IEntitiesChangeDetector<ChannelMember>, EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
+        services.AddTransient<IEntitiesChangeDetector<long>, EntitiesChangeDetector<long>>();
         services.AddTransient<AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
-        
+
+        //services.AddTransient<IEntitiesChangeEventsCreator<ChannelMember>>(sp =>
+        //{
+        //    var timeProvider = sp.GetRequiredService<ITimeProvider>();
+        //    return new EntitiesChangeEventsCreator<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(timeProvider);
+        //});
+
+        services.AddTransient<IEntitiesChangeEventsCreator<ChannelMember>, EntitiesChangeEventsCreator<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
 
         services.AddTransient<SubscribersChangeProcessor>();
         services.AddTransient<MessageBuilder>();

@@ -27,7 +27,7 @@ public class IntegrationTestsBase
     protected SubscribersChangeProcessor? subscribersChangeProcessor;
     protected MonitoringBotDbContextBase? dbContext;
     protected List<ChannelMember>? allChannelMembers;
-    protected EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>? subscribersChangeDetector;
+    protected EntitiesChangeDetector<ChannelMember>? subscribersChangeDetector;
     protected AddOrUpdateSubscribersCommand? addSubscribersCommand;
     protected GetEventsInPeriodQueryExecution<ChannelMember>? getEventsInPeriodQueryExecution;
     protected AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand;
@@ -66,7 +66,7 @@ public class IntegrationTestsBase
         subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand);
         subscribersChangeProcessor = new SubscribersChangeProcessor(addSubscribersCommand);
 
-        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(timeProviderMock.Object);
+        subscribersChangeDetector = new EntitiesChangeDetector<ChannelMember>();
         eventsMonitoringProcessor = new EventsMonitoringProcessor<ChannelMember>(getEventsInPeriodQueryExecution, timeProviderMock.Object);
 
         fetchUsersBackgroundServiceMock = new Mock<FetchUsersBackgroundServiceBase>();

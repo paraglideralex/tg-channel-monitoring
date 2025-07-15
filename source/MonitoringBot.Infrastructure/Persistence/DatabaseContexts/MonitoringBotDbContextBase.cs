@@ -14,6 +14,7 @@ public class MonitoringBotDbContextBase : DbContext
     public DbSet<EventEntity> Events { get; set; }
     public DbSet<AggregateSnapshotEntity> Snapshots { get; set; }
     public DbSet<BotUserEntity> BotUsers { get; set; }
+    public DbSet<ApiUserEntity> ApiUsers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,6 +43,12 @@ public class MonitoringBotDbContextBase : DbContext
         {
             user.HasKey(u => u.Id);
             user.HasIndex(u => u.Id);
+        });
+
+        modelBuilder.Entity<ApiUserEntity>(user =>
+        {
+            user.HasKey(u => u.Id);
+            user.HasIndex(u => u.IsCurrent);
         });
     }
 }
