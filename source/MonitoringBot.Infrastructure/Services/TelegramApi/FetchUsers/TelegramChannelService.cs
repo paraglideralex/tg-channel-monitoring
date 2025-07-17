@@ -44,35 +44,25 @@ public class TelegramChannelService : TelegramApiServiceBase
 
     private async Task<Channel?> TryGetChannelByReferenceAsync(string channelReference)
     {
-        Messages_Dialogs? dialogs = await TryGetAllDialogsAsync();
-
-        if (dialogs is null)
-        {
-            Log.Fatal("Не найдено ни одного диалога.");
-            return null;
-        }
-
-        foreach (var peer in dialogs.chats.Values)
-            if (peer is Channel channel && channel.IsChannel && channel.MainUsername == channelReference)
-                return channel;
-
-        return null;
+        return await TryGetAllDialogsAsync(channelReference);
     }
 
-    private async Task<Messages_Dialogs?> TryGetAllDialogsAsync()
+    private async Task<Channel?> TryGetAllDialogsAsync(string channelReference)
     {
         try
         {
-            return await client.Messages_GetAllDialogs();
+            var resolved = await client.Contacts_ResolveUsername(channelReference);
+            var channel = resolved.chats.Values.OfType<Channel>().FirstOrDefault();
+            return channel;
         }
         catch (RpcException ex)
         {
-            Log.Error($"Исключение на уровне RPC Telegram API во время получения диалогов: {ex.Message}");
+            Log.Error($"Исключение на уровне RPC Telegram API во время получения нужного диалога: {ex.Message}");
             return null;
         }
         catch (Exception ex)
         {
-            Log.Error($"Неопознанное исключение Telegram API во время получения диалогов: {ex.Message}");
+            Log.Error($"Неопознанное исключение Telegram API во время получения нужного диалога: {ex.Message}");
             return null;
         }
     }
