@@ -61,6 +61,7 @@ public sealed class AggregateSnapshotCreator<TEntity, TOnJoinedEventArgs, TOnLef
         };
     }
 
+    // TODO: тут ограничение по уникальному ключу - доработать чтобы менялся гуид
     private AggregateSnapshot LastOrDefault(AggregateSnapshot? last, string aggregateName) =>
         last is null
             ? new()

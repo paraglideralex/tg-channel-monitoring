@@ -55,15 +55,23 @@ public sealed class ApiUsersRepositoryImplementation(
             .Select(s => s.Id)
             .ToListAsync();
 
+        //var leftUserIds = await dbContext.ApiUsers
+        //    .Where(s => !s.IsCurrent)
+        //    .Select(s => s.Id)
+        //    .ToListAsync();
+
         var existingUserIdSet = existingUserIds.ToHashSet();
+        //var leftUserIdsSet = leftUserIds.ToHashSet();
 
         var newUsers = usersFromApi
-            .Where(u => !existingUserIdSet.Contains(u.Id))
+            .Where(u => !existingUserIdSet.Contains(u.Id))// && !leftUserIdsSet.Contains(u.Id))
             .Select(u => u.ToEntity(true))
             .ToList();
 
         var idsToMarkNotCurrent = existingUserIdSet.Except(currentUserIds).ToList();
-        var idsToMarkCurrent = currentUserIds.Except(existingUserIdSet).ToList();
+        //var idsToMarkCurrent = currentUserIds.Where(c => leftUserIdsSet.Contains(c)).ToList();
+
+        //var realNew = currentUserIds.Except(leftUserIdsSet).ToList();
 
         var usersToMarkNotCurrent = new List<ApiUserEntity>();
 
@@ -81,19 +89,19 @@ public sealed class ApiUsersRepositoryImplementation(
                 user.TimeStamp = timeStamp;
             }
         }
-        if (idsToMarkCurrent.Count > 0)
-        {
-            foreach (var user in usersToMarkNotCurrent)
-            {
-                user.IsCurrent = false;
-                user.TimeStamp = timeStamp;
-            }
-        }
+        //if (idsToMarkCurrent.Count > 0)
+        //{
+        //    foreach (var user in usersToMarkNotCurrent)
+        //    {
+        //        user.IsCurrent = true;
+        //        user.TimeStamp = timeStamp;
+        //    }
+        //}
 
         using var transaction = await dbContext.Database.BeginTransactionAsync();
 
         if (newUsers.Count > 0)
-            await dbContext.BulkInsertAsync(newUsers);
+            await dbContext.BulkInsertOrUpdateAsync(newUsers);
 
         if (usersToMarkNotCurrent.Count > 0)
             await dbContext.BulkUpdateAsync(usersToMarkNotCurrent);
