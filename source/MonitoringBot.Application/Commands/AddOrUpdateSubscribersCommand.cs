@@ -22,18 +22,18 @@ public sealed class AddOrUpdateSubscribersCommand(
         return basic && eachNotNull && notEmpty;
     }
 
-    protected override async Task ExecuteCoreAsync(EntitiesCollectionChangedEventArgs<ChannelMember> arguments)
+    protected override async Task ExecuteCoreAsync(EntitiesCollectionChangedEventArgs<ChannelMember> arguments, ServiceContext serviceContext)
     {
-        var existingMembers = await userRepository.FindByIdsAsync(arguments.EntitiesDifference.Select(x => x.Id));
+        var existingMembers = await userRepository.FindByIdsAsync(arguments.EntitiesDifference.Select(x => x.Id), serviceContext.CancellationToken);
 
         if(existingMembers is not null && existingMembers.Count != 0)
         {
-            await userRepository.UpdateRangeAsync(existingMembers, arguments.EventType, timeProvider.UtcNow);
+            await userRepository.UpdateRangeAsync(existingMembers, arguments.EventType, timeProvider.UtcNow, serviceContext.CancellationToken);
             Log.Information($"Обновлены пользователи: {string.Join(";", existingMembers.Select(x => x.NickName))}");
         }
 
         var newMembers = arguments.EntitiesDifference.Except(existingMembers ?? []);
-        await userRepository.AddRangeAsync(newMembers, arguments.EventType);
+        await userRepository.AddRangeAsync(newMembers, arguments.EventType, serviceContext.CancellationToken);
         Log.Information($"Новые пользователи добавлены в базу: {string.Join(";", newMembers.Select(x => x.NickName))}");
     }
 }

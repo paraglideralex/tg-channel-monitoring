@@ -16,19 +16,12 @@ public sealed class AggregateSnapshotCreator<TEntity, TOnJoinedEventArgs, TOnLef
         where TOnLeftEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
 
 {
-    public async Task<AggregateSnapshot> ExecuteAsync(string aggregateName)
+    public async Task<AggregateSnapshot> ExecuteAsync(string aggregateName, CancellationToken cancellationToken)
     {
         var timeStamp = timeProvider.UtcNow;
-        var lastSnapshotByTime = await snapshotRepository.GetClosestPreviousAsync(aggregateName, timeStamp);
+        var lastSnapshotByTime = await snapshotRepository.GetClosestPreviousAsync(aggregateName, timeStamp, cancellationToken);
 
-        //IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> lastEvents = lastSnapshotByTime is null
-        //    ? await eventRepository.GetEventsByFilterAsync(new EventsQueryFilter
-        //    {
-        //        EntityAggregateNameProjection = aggregateName,
-        //        Toinclusive = timeStamp
-        //    })
-        //    : await eventRepository.GetEventsFromLastSnapshotAsync(lastSnapshotByTime, timeStamp);
-
+        // TODO: это можно и нужно в дальнейшем обрабатывать батчами, а не сразу полностью, эвентов может быть очень много, можно словить OOM
         var lastEvents = await eventRepository.GetEventsByFilterAsync(new EventsQueryFilter
         {
             EntityAggregateNameProjection = aggregateName,
@@ -39,8 +32,6 @@ public sealed class AggregateSnapshotCreator<TEntity, TOnJoinedEventArgs, TOnLef
             return LastOrDefault(lastSnapshotByTime, aggregateName);
 
         var newCount = entitiesQuantityCounter.EntitiesIncrementByEvents(lastEvents);
-
-        //var lastSnapshotCount = lastSnapshotByTime?.TotalEntities ?? 0;
 
         var newTotalCount = newCount;
 
@@ -61,7 +52,6 @@ public sealed class AggregateSnapshotCreator<TEntity, TOnJoinedEventArgs, TOnLef
         };
     }
 
-    // TODO: тут ограничение по уникальному ключу - доработать чтобы менялся гуид
     private AggregateSnapshot LastOrDefault(AggregateSnapshot? last, string aggregateName) =>
         last is null
             ? new()

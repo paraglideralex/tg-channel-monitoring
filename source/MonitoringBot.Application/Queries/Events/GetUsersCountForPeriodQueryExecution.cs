@@ -14,9 +14,9 @@ public sealed class GetUsersCountForPeriodQueryExecution(
     EventRepository<ChannelMember> eventsRepository,
     UsersCountForPeriodCore usersCountForPeriodCore)
 {
-    public async Task<DateWithUsersCount[]> ExecuteAsync(GetUsersCountForPeriodQuery query)
+    public async Task<DateWithUsersCount[]> ExecuteAsync(GetUsersCountForPeriodQuery query, ServiceContext serviceContext)
     {
-        var countTask = await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent));
+        var countTask = await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent), serviceContext.CancellationToken);
         var eventTypesOrdered = await eventsRepository.GetEventTypesInPeriodAsync(
             query.AggregateName,
             query.FromNonInclusive,

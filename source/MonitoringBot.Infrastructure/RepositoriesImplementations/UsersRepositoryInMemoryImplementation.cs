@@ -9,26 +9,14 @@ namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
 public class UsersRepositoryInMemoryImplementation(
     IDbContextFactory<MonitoringBotDbContextBase> factory) : UserRepository
 {
-    public override async Task AddAsync(ChannelMember user, string? lastAction)
-    {
-        await using var context = await factory.CreateDbContextAsync();
 
-        var exists = await context.ChannelMembers
-            .AnyAsync(u => u.Id == user.Id);
-        if (!exists)
-        {
-            context.ChannelMembers.Add(user.ToEntity(lastAction));
-            await context.SaveChangesAsync();
-        }
-    }
-
-    public override async Task AddRangeAsync(IEnumerable<ChannelMember> users, string? lastAction)
+    public override async Task AddRangeAsync(IEnumerable<ChannelMember> users, string? lastAction, CancellationToken cancellationToken)
     {
-        await using var context = await factory.CreateDbContextAsync();
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
 
         var existingIds = await context.ChannelMembers
             .Select(u => u.Id)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var newUsers = users.Where(u => !existingIds.Contains(u.Id)).ToList();
 
@@ -36,15 +24,15 @@ public class UsersRepositoryInMemoryImplementation(
         {
             var entities = newUsers.Select(u => u.ToEntity(lastAction));
             context.ChannelMembers.AddRange(entities);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(cancellationToken);
         }
     }
 
-    public override async Task UpdateAsync(ChannelMember user, string? lastAction, DateTime timeStamp)
+    public override async Task UpdateAsync(ChannelMember user, string? lastAction, DateTime timeStamp, CancellationToken cancellationToken)
     {
-        await using var context = await factory.CreateDbContextAsync();
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
 
-        var existing = await context.ChannelMembers.FindAsync(user.Id);
+        var existing = await context.ChannelMembers.FindAsync(user.Id, cancellationToken);
 
         if(existing is null)
             throw new InvalidOperationException($"User with Id: {user.Id} does not exist.");
@@ -58,18 +46,18 @@ public class UsersRepositoryInMemoryImplementation(
         existing.LastAction = lastAction;
         existing.TimeStamp = timeStamp;
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
     }
 
-    public override async Task UpdateRangeAsync(IEnumerable<ChannelMember> users, string? lastAction, DateTime timeStamp)
+    public override async Task UpdateRangeAsync(IEnumerable<ChannelMember> users, string? lastAction, DateTime timeStamp, CancellationToken cancellationToken)
     {
-        await using var context = await factory.CreateDbContextAsync();
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
 
         var userIds = users.Select(e => e.Id).ToList();
 
         var existingEntities = await context.ChannelMembers
             .Where(cm => userIds.Contains(cm.Id))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         foreach (var existing in existingEntities)
         {
@@ -85,101 +73,59 @@ public class UsersRepositoryInMemoryImplementation(
             existing.TimeStamp = timeStamp;
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
     }
 
-    public override async Task DeleteAsync(ChannelMember user)
+    public override async Task<long> CountByLastActionAsync(string lastAction, CancellationToken cancellationToken)
     {
-        await using var context = await factory.CreateDbContextAsync();
-
-        var entity = await context.ChannelMembers.FindAsync(user.Id);
-        if (entity != null)
-        {
-            context.ChannelMembers.Remove(entity);
-            await context.SaveChangesAsync();
-        }
-    }
-
-    public override async Task DeleteRangeAsync(IEnumerable<ChannelMember> users)
-    {
-        await using var context = await factory.CreateDbContextAsync();
-
-        var ids = users.Select(u => u.Id).ToList();
-        var entities = await context.ChannelMembers.Where(u => ids.Contains(u.Id)).ToListAsync();
-
-        if (entities.Any())
-        {
-            context.ChannelMembers.RemoveRange(entities);
-            await context.SaveChangesAsync();
-        }
-    }
-
-    public override async Task<long> CountAsync()
-    {
-        await using var context = await factory.CreateDbContextAsync();
-
-        return await context.ChannelMembers
-            .AsNoTracking()
-            .LongCountAsync();
-    }
-
-    public override async Task<long> CountByLastActionAsync(string lastAction)
-    {
-        await using var context = await factory.CreateDbContextAsync();
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
 
         return await context.ChannelMembers
             .AsNoTracking()
             .Where(x => x.LastAction == lastAction)
-            .LongCountAsync();
+            .LongCountAsync(cancellationToken);
     }
 
-    public override async Task<List<long>> Keys()
+    public override async Task<ChannelMember?> FindByIdAsync(long identity, CancellationToken cancellationToken)
     {
-        await using var context = await factory.CreateDbContextAsync();
-
-        return await context.ChannelMembers.Select(u => u.Id).ToListAsync();
-    }
-
-    public override async Task<ChannelMember?> FindById(long identity)
-    {
-        await using var context = await factory.CreateDbContextAsync();
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
 
         var entity = await context.ChannelMembers
             .AsNoTracking()
             .Where(u => u.Id == identity)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         return entity?.ToDomain();
     }
 
-    public override async Task<List<ChannelMember>> FindByIdsAsync(IEnumerable<long> identities)
+    public override async Task<List<ChannelMember>> FindByIdsAsync(IEnumerable<long> identities, CancellationToken cancellationToken)
     {
-        await using var context = await factory.CreateDbContextAsync();
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
 
         var entities = await context.ChannelMembers
             .AsNoTracking()
             .Where(u => identities.Contains(u.Id))
             .Select(u => u.ToDomain())
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return entities;
     }
 
-    public override async Task<List<ChannelMember>> TakeLast(int count = 5)
+    public override async Task<List<ChannelMember>> TakeLast(int count = 5, CancellationToken cancellationToken = default)
     {
-        await using var context = await factory.CreateDbContextAsync();
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
 
         var ordered = context.ChannelMembers
             .AsNoTracking()
             .OrderByDescending(m => m.TimeStamp);
 
         var taken = ordered.Count() >= count ? ordered.Take(count) : ordered;
-        return await taken.Select(t => t.ToDomain()).ToListAsync();
+        return await taken.Select(t => t.ToDomain()).ToListAsync(cancellationToken);
     }
 
-    public override async Task<List<ChannelMember>> TakeLastByAction(string lastAction, int count = 5)
+    public override async Task<List<ChannelMember>> TakeLastByActionAsync(string lastAction, CancellationToken cancellationToken, int count = 5)
     {
-        await using var context = await factory.CreateDbContextAsync();
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
 
         var filtered = context.ChannelMembers
             .AsNoTracking()
@@ -187,16 +133,7 @@ public class UsersRepositoryInMemoryImplementation(
 
         var ordered = filtered.OrderByDescending(m => m.TimeStamp);
         var taken = ordered.Count() >= count ? ordered.Take(count) : ordered;
-        return await taken.Select(t => t.ToDomain()).ToListAsync();
-    }
-
-    public override async Task<List<ChannelMember>> All()
-    {
-        await using var context = await factory.CreateDbContextAsync();
-
-        return await context.ChannelMembers
-            .AsNoTracking()
-            .Select(u => u.ToDomain()).ToListAsync();
+        return await taken.Select(t => t.ToDomain()).ToListAsync(cancellationToken);
     }
 
     public override async Task<List<ChannelMember>> AllSubscribed()
@@ -209,13 +146,13 @@ public class UsersRepositoryInMemoryImplementation(
             .Select(u => u.ToDomain()).ToListAsync();
     }
 
-    public override async Task<List<long>> AllSubscribedIdentities()
+    public override async Task<List<long>> AllSubscribedIdentitiesAsync(CancellationToken cancellationToken)
     {
-        await using var context = await factory.CreateDbContextAsync();
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
 
         return await context.ChannelMembers
             .AsNoTracking()
             .Where(cm => cm.LastAction == nameof(SubscriberJoinedEvent))
-            .Select(u => u.Id).ToListAsync();
+            .Select(u => u.Id).ToListAsync(cancellationToken);
     }
 }

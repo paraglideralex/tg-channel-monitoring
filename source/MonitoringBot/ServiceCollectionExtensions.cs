@@ -135,7 +135,6 @@ public static class ServiceCollectionExtensions
 
         // Queries/Commands
         services.AddTransient<AddOrUpdateSubscribersCommand>();
-        services.AddTransient<DeleteSubscribersCommand>();
         services.AddTransient<GetAllCurrentSubscribersQuery>();
         services.AddTransient<GetEventsInPeriodQueryExecution<ChannelMember>>();
         services.AddTransient<GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember>>();
@@ -147,12 +146,6 @@ public static class ServiceCollectionExtensions
 
         services.AddTransient<IEntitiesChangeDetector<long>, EntitiesChangeDetector<long>>();
         services.AddTransient<AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
-
-        //services.AddTransient<IEntitiesChangeEventsCreator<ChannelMember>>(sp =>
-        //{
-        //    var timeProvider = sp.GetRequiredService<ITimeProvider>();
-        //    return new EntitiesChangeEventsCreator<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(timeProvider);
-        //});
 
         services.AddTransient<IEntitiesChangeEventsCreator<ChannelMember>, EntitiesChangeEventsCreator<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
 

@@ -1,4 +1,5 @@
 ﻿using MonitoringBot.Application.Commands;
+using MonitoringBot.Infrastructure;
 
 using Quartz;
 using Quartz.Util;
@@ -20,11 +21,13 @@ public class BaseCommandJob<TCommand, TArguments>(TCommand command) : IJob
         {
             var arguments = GetCommandArguments(context);
             if (arguments is null)
-            {
                 Log.Error("Unable to deserialize job arguments.");
-            }
 
-            await command.ExecuteAsync(arguments!);
+            var serviceContext = GetServiceContext(context);
+            if(serviceContext is null)
+                Log.Error("Unable to deserialize service context.");
+
+            await command.ExecuteAsync(arguments!, serviceContext!);
         }
         catch (Exception ex)
         {
@@ -48,6 +51,26 @@ public class BaseCommandJob<TCommand, TArguments>(TCommand command) : IJob
         catch (Exception ex)
         {
             Log.Error(ex, "Exception while extracting job arguments.");
+            return null;
+        }
+    }
+
+    protected ServiceContext? GetServiceContext(IJobExecutionContext context)
+    {
+        try
+        {
+            var contextArgumentsSucceed = context.JobDetail.JobDataMap.TryGetString(nameof(JobData.ServiceContext), out string? contextArguments);
+            if (!contextArgumentsSucceed || contextArguments.IsNullOrWhiteSpace())
+            {
+                Log.Error($"Unable to parse job {nameof(ServiceContext)}.");
+            }
+
+            var arguments = JsonSerializer.Deserialize<ServiceContext>(contextArguments!);
+            return arguments;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"Exception while extracting job {nameof(ServiceContext)}.");
             return null;
         }
     }

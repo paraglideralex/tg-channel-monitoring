@@ -4,6 +4,7 @@ using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events;
+using MonitoringBot.Infrastructure;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 using MonitoringBot.Infrastructure.Settings;
@@ -11,6 +12,8 @@ using MonitoringBot.Presentation;
 using MonitoringBot.Services.MessagesSending;
 
 using Serilog;
+
+using System.Threading;
 
 using Telegram.BotAPI;
 using Telegram.BotAPI.GettingUpdates;
@@ -66,12 +69,13 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     private DateTime basicTimeStamp;
     private IEnumerable<Update>? updates;
     private DateTime beginWorkingFrom;
+    private CancellationTokenSource cancellationTokenSource;
     
-    private async Task ProcessMonitoringByPeriodAsync()
+    private async Task ProcessMonitoringByPeriodAsync(CancellationToken cancellationToken)
     {
         if ((timeProvider.UtcNow - basicTimeStamp).TotalSeconds > checkPeriodSeconds)
         {
-            await monitoringService.ProcessMonitoringAsync();
+            await monitoringService.ProcessMonitoringAsync(cancellationTokenSource.Token);
             basicTimeStamp = timeProvider.UtcNow;
         }
     }
@@ -80,6 +84,8 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     {
         if (updates is not null && updates.Any())
         {
+            var currentUpdateContext = new ServiceContext { CancellationToken = cancellationTokenSource.Token, CorrelationId = Guid.NewGuid() };
+
             Log.Information("Получен пользовательский ввод.");
             foreach (var update in updates)
             {
@@ -102,24 +108,27 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                 string? resultMessage = message switch
                 {
                     "/info" => messageBuilder.Info(telegramApiSettings.ChannelReferenceLink),
-                    "/last" => await messageBuilder.LastAsync(),
-                    "/last_subscribed" => await messageBuilder.LastSubscribedAsync(),
-                    "/last_unsubscribed" => await messageBuilder.LastUnsubscribedAsync(),
+                    "/last" => await messageBuilder.LastAsync(cancellationToken: cancellationTokenSource.Token),
+                    "/last_subscribed" => await messageBuilder.LastSubscribedAsync(cancellationToken: cancellationTokenSource.Token),
+                    "/last_unsubscribed" => await messageBuilder.LastUnsubscribedAsync(cancellationToken: cancellationTokenSource.Token),
                     "/change_period" => "будет менять период мониторинга",
                     "/check" => await messageBuilder.CheckDiagnosticsAsync(
                                       checkPeriodSeconds, 
                                       telegramBotSettings.ChatIdsCollection.Count,
                                       beginWorkingFrom,
                                       fetchUsersBackgroundService.GetState(),
-                                      telegramApiSettings.ChannelReferenceLink),
-                    "/count_history" => await messageBuilder.CountHistoryAsync(telegramApiSettings.ChannelReferenceLink),
-                    "/history_snapshot" => await messageBuilder.HistorySnapshotAsync(telegramApiSettings.ChannelReferenceLink),
-                    _ => null
+                                      telegramApiSettings.ChannelReferenceLink,
+                                      cancellationTokenSource.Token),
+                    "/count_history" => await messageBuilder.CountHistoryAsync(telegramApiSettings.ChannelReferenceLink, currentUpdateContext),
+                    "/history_snapshot" => await messageBuilder.HistorySnapshotAsync(
+                        telegramApiSettings.ChannelReferenceLink, 
+                        currentUpdateContext),
+                    _ => "это не известная мне команда..."
                 };
 
                 if (resultMessage is not null)
                 {
-                    await messagesSendingService.TrySendMessageAsync(chatId, resultMessage);
+                    await messagesSendingService.TrySendMessageAsync(chatId, resultMessage, cancellationTokenSource.Token);
                     Log.Information($"Пользователю {chatId} отправлен ответ на {message}: '{resultMessage.TakeAndFormatFirst(300)}'.");
                 }
             }
@@ -150,6 +159,8 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
 
     public async Task InitializeAsync()
     {
+        cancellationTokenSource = new CancellationTokenSource();
+
         checkPeriodSeconds = telegramBotSettings.CheckPeriodSeconds;
         basicTimeStamp = timeProvider.UtcNow;
         beginWorkingFrom = timeProvider.UtcNow;
@@ -162,33 +173,53 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
 
         entitiesChangeMessageProducer.MessageProduced += messagesSendingService.OnMessageProduced;
 
-        updates = await telegramBotClient.GetUpdatesAsync();
+        updates = await telegramBotClient.GetUpdatesAsync(cancellationToken: cancellationTokenSource.Token);
         await fetchUsersBackgroundService.LoginAsync();
         bool apiServiceInitializationSuccess = await fetchUsersBackgroundService.InitializeServiceAsync();
         if(!apiServiceInitializationSuccess)
         {
             var message = $"Не удалось корректно инициализировать сервис сбора подписчиков '${nameof(TelegramChannelService)}'.";
             Log.Fatal(message);
-            await messagesSendingService.TrySendMessageForAllAsync(telegramBotSettings.ChatIdsCollection, message);
+            await messagesSendingService.TrySendMessageForAllAsync(
+                telegramBotSettings.ChatIdsCollection, 
+                message,
+                new() { CancellationToken = cancellationTokenSource.Token, CorrelationId = Guid.NewGuid()});
             return;
         }
 
         fetchUsersBackgroundService.Start();
 
-        await messagesSendingService.TrySendMessageForAllAsync(telegramBotSettings.ChatIdsCollection, "Я загрузился🚀! Наблюдаю...  👀🔎");
+        await messagesSendingService.TrySendMessageForAllAsync(
+            telegramBotSettings.ChatIdsCollection,
+            "Я загрузился🚀! Наблюдаю...  👀🔎",
+            new() { CancellationToken = cancellationTokenSource.Token, CorrelationId = Guid.NewGuid() });
+
         Log.Information($"{GetType()} загрузился успешно.");
 
         //await monitoringService.ProcessMonitoringAsync(); // TODO: получить существующих юзеров для мониторинга из базы, когда она таки-будет
 
-        await snapshotCollectingJobScheduler.ScheduleAsync(new() { AggregateName = telegramApiSettings.ChannelReferenceLink, TimeStamp = timeProvider.UtcNow }, new CancellationToken());
+        await snapshotCollectingJobScheduler.ScheduleAsync(new() 
+            { 
+                AggregateName = telegramApiSettings.ChannelReferenceLink, 
+                TimeStamp = timeProvider.UtcNow 
+            }, 
+            cancellationTokenSource.Token);
     }
 
     public async Task MainLoopAsync()
     {
         while (true)
         {
-            await ProcessMonitoringByPeriodAsync();
-            await CheckAndProcessInputsAsync();
+            try
+            {
+                await ProcessMonitoringByPeriodAsync(cancellationTokenSource.Token);
+                await CheckAndProcessInputsAsync();
+            }
+            catch (OperationCanceledException)
+            {
+                Log.Warning("Monitoring stopped");
+                break;
+            }
         }
     }
 }

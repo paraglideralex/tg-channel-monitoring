@@ -21,7 +21,7 @@ public class FetchUsersBackgroundService : FetchUsersBackgroundServiceBase
     {
     }
 
-    public override async Task<bool> InitializeServiceAsync() => await telegramService.InitializeChannelAsync();
+    public override async Task<bool> InitializeServiceAsync() => await telegramService.InitializeChannelAsync(cancellationTokenSource.Token);
 
     public override void Start() => _ = Task.Run(() => RunFetchLoopAsync(cancellationTokenSource.Token));
 

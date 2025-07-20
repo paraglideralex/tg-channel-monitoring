@@ -24,11 +24,12 @@ public class MessageBuilder(
         int botSubscribersCount,
         DateTime startWorkingTimeStamp,
         TelegramServiceState state,
-        string channelReference)
+        string channelReference, 
+        CancellationToken cancellationToken)
     {
         var sb = new StringBuilder();
 
-        sb.AppendLine($"Количество подписчиков: {await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent))}");
+        sb.AppendLine($"Количество подписчиков: {await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent), cancellationToken)}");
         sb.AppendLine($"Период обновления данных, секунд: {dataUpdatePeriodSeconds}");
         sb.AppendLine($"Время подсчета подписчиков, секунд: {state.LastSearchParicipantsDurationSeconds}");
         sb.AppendLine($"Количество текущих подписчиков на бота: {botSubscribersCount}");
@@ -42,21 +43,21 @@ public class MessageBuilder(
         return sb.ToString();
     }
 
-    public async Task<string> LastAsync(string? eventType = null, int count = 5)
+    public async Task<string> LastAsync(string? eventType = null, int count = 5, CancellationToken cancellationToken = default)
     {
         var members = await userRepository.TakeLast(count);
         return await GetLastCoreAsync(members, eventType, count);
     }
 
-    public async Task<string> LastSubscribedAsync(string? eventType = null, int count = 5)
+    public async Task<string> LastSubscribedAsync(string? eventType = null, int count = 5, CancellationToken cancellationToken = default)
     {
-        var members = await userRepository.TakeLastByAction(nameof(SubscriberJoinedEvent), count);
+        var members = await userRepository.TakeLastByActionAsync(nameof(SubscriberJoinedEvent), cancellationToken, count);
         return await GetLastCoreAsync(members, eventType, count);
     }
 
-    public async Task<string> LastUnsubscribedAsync(string? eventType = null, int count = 5)
+    public async Task<string> LastUnsubscribedAsync(string? eventType = null, int count = 5, CancellationToken cancellationToken = default)
     {
-        var members = await userRepository.TakeLastByAction(nameof(SubscriberLeftEvent), count);
+        var members = await userRepository.TakeLastByActionAsync(nameof(SubscriberLeftEvent), cancellationToken, count);
         return await GetLastCoreAsync(members, eventType, count);
     }
 
@@ -108,12 +109,13 @@ public class MessageBuilder(
 
     public async Task<string> FormatMemberAsync(
         ChannelMember member,
-        string? eventType = null)
+        string? eventType = null, 
+        CancellationToken cancellationToken = default)
     {
         var sb = new StringBuilder();
         var lastAction = DefineLastAction(member, eventType) ;
 
-        var existing = await userRepository.FindById(member.Id);
+        var existing = await userRepository.FindByIdAsync(member.Id, cancellationToken);
         var created = existing?.Created ?? member.Created;
 
         sb.AppendLine($"  ID: {member.Id}");
@@ -148,6 +150,7 @@ public class MessageBuilder(
 
     public async Task<string> CountHistoryAsync(
         string aggregateName,
+        ServiceContext serviceContext,
         DateTime? toDateTimeInclusive = null,
         DateTime? fromDateTimeNonInclusive = null,
         TimeSpan? step = null)
@@ -162,7 +165,8 @@ public class MessageBuilder(
             Step = actualStep,
             FromNonInclusive = actualFromDateTimeNonInclusive,
             ToInclusive = actualToDateTimeInclusive
-        });
+        },
+        serviceContext);
 
         var period = toDateTimeInclusive is null && fromDateTimeNonInclusive is null
             ? "месяц"
@@ -182,7 +186,7 @@ public class MessageBuilder(
 
     }
 
-    public async Task<string> HistorySnapshotAsync(string aggregateName, DateTime? timeStamp = null)
+    public async Task<string> HistorySnapshotAsync(string aggregateName, ServiceContext serviceContext, DateTime? timeStamp = null)
     {
         (TimeSpan timeSpan, string name) = timeStamp is null
             ? (TimeSpan.FromDays(7), "Неделю")
@@ -190,13 +194,14 @@ public class MessageBuilder(
 
         var realTimeStamp = timeStamp ?? timeProvider.UtcNow - timeSpan;
 
-        long currentCount = await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent));
+        long currentCount = await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent), serviceContext.CancellationToken);
         var snapshot = await closestSnapshotByTimeQueryExecution.ExecuteAsync(
             new()
             {
                 AggregateName = aggregateName,
                 TimeStamp = realTimeStamp
-            });
+            },
+            serviceContext);
 
         long? previousCount = snapshot?.TotalEntities;
 

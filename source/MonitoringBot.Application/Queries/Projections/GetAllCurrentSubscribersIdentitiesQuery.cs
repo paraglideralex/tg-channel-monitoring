@@ -4,8 +4,8 @@ namespace MonitoringBot.Application.Queries.Projections;
 
 public sealed class GetAllCurrentSubscribersIdentitiesQuery(UserRepository userRepository)
 {
-    public async Task<List<long>> ExecuteAsync()
+    public async Task<List<long>> ExecuteAsync(ServiceContext context)
     {
-        return await userRepository.AllSubscribedIdentities();
+        return await userRepository.AllSubscribedIdentitiesAsync(context.CancellationToken);
     }
 }

@@ -30,8 +30,8 @@ public abstract class TelegramApiServiceBase : ConfigurableTelegramApiService, I
     };
 
     public double LastSearchParicipantsDurationSeconds { get; protected set; } = 0;
-    public abstract Task<bool> InitializeChannelAsync();
-    public abstract Task<List<TLUser>?> GetChannelMembersAsync();
+    public abstract Task<bool> InitializeChannelAsync(CancellationToken cancellationToken);
+    public abstract Task<List<TLUser>?> GetChannelMembersAsync(CancellationToken cancellationToken);
 
     public abstract void Dispose();
 }

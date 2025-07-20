@@ -47,7 +47,7 @@ public abstract class FetchUsersBackgroundServiceBase
         {
             try
             {
-                var users = await telegramService.GetChannelMembersAsync();
+                var users = await telegramService.GetChannelMembersAsync(cancellationToken);
 
                 if (users is null)
                     Log.Error("Импорт подписчиков канала не выполнен, подписчики в этот раз не получены из телеграм-канала.");

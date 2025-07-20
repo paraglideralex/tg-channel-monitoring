@@ -9,4 +9,6 @@ public sealed record BotUserEntity
     public bool? IsForum { get; set; }
     public string? Type { get; set; }
     public string? Title { get; set; }
+    public bool IsCurrent { get; set; }
+    public DateTime TimeStamp { get; set; }
 }

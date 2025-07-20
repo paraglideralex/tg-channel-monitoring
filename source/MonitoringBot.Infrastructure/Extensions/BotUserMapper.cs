@@ -16,7 +16,7 @@ public static class BotUserMapper
         UserName = entity.UserName
     };
 
-    public static BotUserEntity ToEntity(this BotUser user) => new()
+    public static BotUserEntity ToEntity(this BotUser user, bool isCurrent, DateTime timeStamp) => new()
     {
         Id = user.Id,
         FirstName = user.FirstName,
@@ -24,6 +24,8 @@ public static class BotUserMapper
         IsForum = user.IsForum,
         Title = user.Title,
         Type = user.Type,
-        UserName = user.UserName
+        UserName = user.UserName,
+        IsCurrent = isCurrent,
+        TimeStamp = timeStamp
     };
 }

@@ -1,5 +1,4 @@
 ﻿using MonitoringBot.Domain.Abstractions;
-using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure.Diagnostics;
 using MonitoringBot.Infrastructure.Persistence.Entities;
 using MonitoringBot.Infrastructure.Services.FaultSafety;
@@ -25,9 +24,9 @@ public class TelegramChannelService : TelegramApiServiceBase
     {
     }
 
-    private async Task<bool> TryInitializeChannelAsync()
+    private async Task<bool> TryInitializeChannelAsync(CancellationToken cancellationToken)
     {
-        var channel = await TryGetChannelByReferenceAsync(channelReference);
+        var channel = await TryGetAllDialogsAsync(channelReference, cancellationToken);
         if (channel is null)
         {
             Log.Fatal($"Не удалось найти доступный канал со ссылкой '{channelReference}'");
@@ -42,12 +41,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         }
     }
 
-    private async Task<Channel?> TryGetChannelByReferenceAsync(string channelReference)
-    {
-        return await TryGetAllDialogsAsync(channelReference);
-    }
-
-    private async Task<Channel?> TryGetAllDialogsAsync(string channelReference)
+    private async Task<Channel?> TryGetAllDialogsAsync(string channelReference, CancellationToken cancellationToken)
     {
         try
         {
@@ -67,13 +61,14 @@ public class TelegramChannelService : TelegramApiServiceBase
         }
     }
 
-    private async Task<Channels_ChannelParticipants?> TryGetChannelMembersAsync(Channel channel)
+    private async Task<Channels_ChannelParticipants?> TryGetChannelMembersAsync(Channel channel, CancellationToken cancellationToken)
     {
         try
         {
             return await Safe_GetAllParticipants(
                 channel,
-                delayBetweenRequestsMilliseconds: delayBetweenParticipantsRequestsMilliseconds);
+                delayBetweenRequestsMilliseconds: delayBetweenParticipantsRequestsMilliseconds,
+                cancellationToken: cancellationToken);
         }
         catch (RpcException ex)
         {
@@ -159,11 +154,12 @@ public class TelegramChannelService : TelegramApiServiceBase
         }
     }
 
-    public override async Task<bool> InitializeChannelAsync()
+    public override async Task<bool> InitializeChannelAsync(CancellationToken cancellationToken)
     {
         var result = await retryService.ExecuteRetryAsync(
             action: TryInitializeChannelAsync,
             callerName: nameof(TryInitializeChannelAsync),
+            cancellationToken,
             maxRetries: 5,
             secondsInitialWait: 20,
             delayIncreaseType: DelayIncreaseType.Exponential);
@@ -171,12 +167,12 @@ public class TelegramChannelService : TelegramApiServiceBase
         return result;
     }
 
-    public override async Task<List<TLUser>?> GetChannelMembersAsync()
+    public override async Task<List<TLUser>?> GetChannelMembersAsync(CancellationToken cancellationToken)
     {
         if (channel is null)
         {
             Log.Error($"Не найдена ссылка на запрашиваемый канал '{channelReference}', " +
-                $"пользователи не будут получены. Возможно, стоит инициализировать сервис '{GetType()}'");
+                $"пользователи не будут получены. Возможно, стоит инициализировать сервис '{GetType().Name}'");
 
             return null;
         }
@@ -185,7 +181,7 @@ public class TelegramChannelService : TelegramApiServiceBase
             "Safe search of all participants",
             t => State.LastSearchParicipantsDurationSeconds = t.TotalSeconds);
 
-        var participants = await TryGetChannelMembersAsync(channel);
+        var participants = await TryGetChannelMembersAsync(channel, cancellationToken);
 
         if (participants is null)
             return null;

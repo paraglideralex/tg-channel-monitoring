@@ -8,5 +8,5 @@ public interface IMonitoringService<TEntity, TOnJoinedEvent, TOnLeftEvent>
     where TOnJoinedEvent : EntitiesChangedDomainEventBase<TEntity>, new()
     where TOnLeftEvent : EntitiesChangedDomainEventBase<TEntity>, new()
 {
-    public Task ProcessMonitoringAsync();
+    public Task ProcessMonitoringAsync(CancellationToken cancellationToken);
 }
