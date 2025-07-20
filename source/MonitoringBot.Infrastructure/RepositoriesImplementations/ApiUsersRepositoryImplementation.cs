@@ -12,76 +12,68 @@ namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
 public sealed class ApiUsersRepositoryImplementation(
     IDbContextFactory<MonitoringBotDbContextBase> factory) : ApiUsersRepository
 {
-    public override async Task<IReadOnlyCollection<TLUser>> GetCurrentUsersAsync()
+    public override async Task<IReadOnlyCollection<TLUser>> GetCurrentUsersAsync(CancellationToken cancellationToken)
     {
-        await using var dbContext = await factory.CreateDbContextAsync();
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
         return await dbContext.ApiUsers
             .Where(u => u.IsCurrent)
             .Select(u => u.ToTLUser())
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
-    public override async Task<List<long>> GetCurrentUsersIdentitiesAsync()
+    public override async Task<List<long>> GetCurrentUsersIdentitiesAsync(CancellationToken cancellationToken)
     {
-        await using var dbContext = await factory.CreateDbContextAsync();
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
         return await dbContext.ApiUsers
             .Where(u => u.IsCurrent)
             .Select(u => u.Id)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
-    public override async Task<IReadOnlyCollection<TLUser>> GetUsersByIdsAsync(IReadOnlyCollection<long> ids)
+    public override async Task<IReadOnlyCollection<TLUser>> GetUsersByIdsAsync(
+        IReadOnlyCollection<long> ids, 
+        CancellationToken cancellationToken)
     {
         var idsSet = new HashSet<long>(ids);
 
-        await using var dbContext = await factory.CreateDbContextAsync();
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
 
         return await dbContext.ApiUsers
             .Where(u => idsSet.Contains(u.Id))
             .Select(u => u.ToTLUser())
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
     public override async Task RefreshUsersAsync(
         IReadOnlyCollection<TLUser> usersFromApi,
-        DateTime timeStamp)
+        DateTime timeStamp,
+        CancellationToken cancellationToken)
     {
         var currentUserIds = usersFromApi.Select(u => u.Id).ToHashSet();
 
-        await using var dbContext = await factory.CreateDbContextAsync();
+        await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
 
         var existingUserIds = await dbContext.ApiUsers
             .Where(s => s.IsCurrent)
             .Select(s => s.Id)
-            .ToListAsync();
-
-        //var leftUserIds = await dbContext.ApiUsers
-        //    .Where(s => !s.IsCurrent)
-        //    .Select(s => s.Id)
-        //    .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var existingUserIdSet = existingUserIds.ToHashSet();
-        //var leftUserIdsSet = leftUserIds.ToHashSet();
 
         var newUsers = usersFromApi
-            .Where(u => !existingUserIdSet.Contains(u.Id))// && !leftUserIdsSet.Contains(u.Id))
+            .Where(u => !existingUserIdSet.Contains(u.Id))
             .Select(u => u.ToEntity(true))
             .ToList();
 
         var idsToMarkNotCurrent = existingUserIdSet.Except(currentUserIds).ToList();
-        //var idsToMarkCurrent = currentUserIds.Where(c => leftUserIdsSet.Contains(c)).ToList();
-
-        //var realNew = currentUserIds.Except(leftUserIdsSet).ToList();
 
         var usersToMarkNotCurrent = new List<ApiUserEntity>();
-
-        // TODO: ломается если кто-то вновь подписывается, нужно и это предусматривать
 
         if (idsToMarkNotCurrent.Count > 0)
         {
             usersToMarkNotCurrent = await dbContext.ApiUsers
                 .Where(s => s.IsCurrent && idsToMarkNotCurrent.Contains(s.Id))
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             foreach (var user in usersToMarkNotCurrent)
             {
@@ -89,16 +81,8 @@ public sealed class ApiUsersRepositoryImplementation(
                 user.TimeStamp = timeStamp;
             }
         }
-        //if (idsToMarkCurrent.Count > 0)
-        //{
-        //    foreach (var user in usersToMarkNotCurrent)
-        //    {
-        //        user.IsCurrent = true;
-        //        user.TimeStamp = timeStamp;
-        //    }
-        //}
 
-        using var transaction = await dbContext.Database.BeginTransactionAsync();
+        using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
 
         if (newUsers.Count > 0)
             await dbContext.BulkInsertOrUpdateAsync(newUsers);
@@ -106,6 +90,6 @@ public sealed class ApiUsersRepositoryImplementation(
         if (usersToMarkNotCurrent.Count > 0)
             await dbContext.BulkUpdateAsync(usersToMarkNotCurrent);
 
-        await transaction.CommitAsync();
+        await transaction.CommitAsync(cancellationToken);
     }
 }

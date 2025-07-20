@@ -4,13 +4,16 @@ namespace MonitoringBot.Domain.RepositoriesAbstarctions;
 
 public abstract class ApiUsersRepository
 {
-    public abstract Task<IReadOnlyCollection<TLUser>> GetUsersByIdsAsync(IReadOnlyCollection<long> ids);
+    public abstract Task<IReadOnlyCollection<TLUser>> GetUsersByIdsAsync(
+        IReadOnlyCollection<long> ids,
+        CancellationToken cancellationToken);
 
-    public abstract Task<IReadOnlyCollection<TLUser>> GetCurrentUsersAsync();
+    public abstract Task<IReadOnlyCollection<TLUser>> GetCurrentUsersAsync(CancellationToken cancellationToken);
 
-    public abstract Task<List<long>> GetCurrentUsersIdentitiesAsync();
+    public abstract Task<List<long>> GetCurrentUsersIdentitiesAsync(CancellationToken cancellationToken);
 
     public abstract Task RefreshUsersAsync(
         IReadOnlyCollection<TLUser> users,
-        DateTime timeStamp);
+        DateTime timeStamp,
+        CancellationToken cancellationToken);
 }

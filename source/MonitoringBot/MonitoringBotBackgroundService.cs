@@ -14,14 +14,12 @@ public class MonitoringBotBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Создаём скоуп на всё время жизни
         using var scope = _scopeFactory.CreateScope();
 
         var runner = scope.ServiceProvider.GetRequiredService<MonitoringBotRunner<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
 
         await runner.InitializeAsync();
 
-        // Запускаем вечный цикл
         await runner.MainLoopAsync();
     }
 }

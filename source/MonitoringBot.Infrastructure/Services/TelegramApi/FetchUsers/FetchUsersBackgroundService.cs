@@ -7,6 +7,7 @@ using MonitoringBot.Infrastructure.Settings;
 
 using Serilog;
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
@@ -17,30 +18,31 @@ public class FetchUsersBackgroundService : FetchUsersBackgroundServiceBase
         TelegramChannelService telegramService,
         TelegramBotSettings settings,
         ApiUsersRepository apiUsersRepository,
-        ITimeProvider timeProvider) : base(telegramService, settings, apiUsersRepository, timeProvider)
+        ITimeProvider timeProvider,
+        CancellationContext cancellationContext) : base(telegramService, settings, apiUsersRepository, timeProvider, cancellationContext)
     {
     }
 
-    public override async Task<bool> InitializeServiceAsync() => await telegramService.InitializeChannelAsync(cancellationTokenSource.Token);
+    public override async Task<bool> InitializeServiceAsync() => await telegramService.InitializeChannelAsync(cancellationContext.Token);
 
-    public override void Start() => _ = Task.Run(() => RunFetchLoopAsync(cancellationTokenSource.Token));
+    public override void Start() => _ = Task.Run(() => RunFetchLoopAsync(cancellationContext.Token));
 
-    public override void Stop() => cancellationTokenSource.Cancel();
+    public override async Task StopAsync() => await cancellationContext.CancelAsync();
 
-    public override async Task<List<ChannelMember>> GetSnapshot()
+    public override async Task<List<ChannelMember>> GetSnapshot(CancellationToken cancellationToken)
     {
-        var current = await apiUsersRepository.GetCurrentUsersAsync();
+        var current = await apiUsersRepository.GetCurrentUsersAsync(cancellationToken);
         return current.Select(u => u.ToDomain()).ToList();
     }
-    public override async Task<List<long>> GetExistingIdentitiesAsync()
+    public override async Task<List<long>> GetExistingIdentitiesAsync(CancellationToken cancellationToken)
     {
-        return await apiUsersRepository.GetCurrentUsersIdentitiesAsync();
+        return await apiUsersRepository.GetCurrentUsersIdentitiesAsync(cancellationToken);
     }
     public override TelegramServiceState GetState() => telegramService.State;
 
-    public override async Task<List<ChannelMember>> GetByIdsAsync(IReadOnlyCollection<long> idsCollection)
+    public override async Task<List<ChannelMember>> GetByIdsAsync(IReadOnlyCollection<long> idsCollection, CancellationToken cancellationToken)
     {
-        var users = await apiUsersRepository.GetUsersByIdsAsync(idsCollection);
+        var users = await apiUsersRepository.GetUsersByIdsAsync(idsCollection, cancellationToken);
         return users.Select(u => u.ToDomain()).ToList();
     }
 }

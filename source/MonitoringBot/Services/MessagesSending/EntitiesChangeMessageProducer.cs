@@ -7,19 +7,19 @@ public abstract class EntitiesChangeMessageProducer<TEntity>
 {
     public event Func<object?, MessageCreatedEventArgs, ServiceContext, Task>? MessageProduced;
 
-    protected abstract Task<string> CreateLeftMessageAsync(EntitiesCollectionChangedEventArgs<TEntity> e);
-    protected abstract Task<string> CreateJoinedMessageAsync(EntitiesCollectionChangedEventArgs<TEntity> e);
+    protected abstract Task<string> CreateLeftMessageAsync(EntitiesCollectionChangedEventArgs<TEntity> e, ServiceContext serviceContext);
+    protected abstract Task<string> CreateJoinedMessageAsync(EntitiesCollectionChangedEventArgs<TEntity> e, ServiceContext serviceContext);
 
     public async Task OnEntitiesJoined(object? sender, EntitiesCollectionChangedEventArgs<TEntity> e, ServiceContext serviceContext)
     {
-        var message = await CreateJoinedMessageAsync(e);
+        var message = await CreateJoinedMessageAsync(e, serviceContext);
         var @event = new MessageCreatedEventArgs(message);
         await RaisePublicMessageEventAsync(MessageProduced, @event, serviceContext);
     }
 
     public async Task OnEntitiesLeft(object? sender, EntitiesCollectionChangedEventArgs<TEntity> e, ServiceContext serviceContext)
     {
-        var message = await CreateLeftMessageAsync(e);
+        var message = await CreateLeftMessageAsync(e, serviceContext);
         var @event = new MessageCreatedEventArgs(message);
         await RaisePublicMessageEventAsync(MessageProduced, @event, serviceContext);
     }

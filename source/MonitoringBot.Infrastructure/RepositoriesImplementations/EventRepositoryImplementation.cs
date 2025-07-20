@@ -16,7 +16,7 @@ namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
 public class EventsRepositoryImplementation<TEntity>(IDbContextFactory<MonitoringBotDbContextBase> factory)
     : EventRepository<TEntity>
 {
-    public override async Task AddRangeAsync(IEnumerable<EntitiesChangedDomainEventBase<TEntity>> events, CancellationToken cancellationToken = default)
+    public override async Task AddRangeAsync(IEnumerable<EntitiesChangedDomainEventBase<TEntity>> events, CancellationToken cancellationToken)
     {
         var entities = events
             .Select(EntityChangedEventsMapping.ToEntity<EntitiesChangedDomainEventBase<TEntity>, TEntity>).ToList();
@@ -30,7 +30,7 @@ public class EventsRepositoryImplementation<TEntity>(IDbContextFactory<Monitorin
     public override async Task<IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>>> GetEventsByPeriodAsync(
         DateTime from,
         DateTime to,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
         var rows = await dbContext.Events
@@ -46,7 +46,7 @@ public class EventsRepositoryImplementation<TEntity>(IDbContextFactory<Monitorin
 
     public override async Task<IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>>> GetEventsByFilterAsync(
         EventsQueryFilter filter,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         await using var dbContext = await factory.CreateDbContextAsync(cancellationToken);
         var query = dbContext.Events.AsQueryable();
@@ -75,7 +75,7 @@ public class EventsRepositoryImplementation<TEntity>(IDbContextFactory<Monitorin
     public override async Task<EntitiesChangedDomainEventBase<TEntity>?> GetLatestEventByTypeAndIdentity(
         string eventType,
         long userIdentityProjection,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation)
     {
         await using var dbContext = await factory.CreateDbContextAsync(cancellation);
         var target = await dbContext.Events
@@ -94,7 +94,7 @@ public class EventsRepositoryImplementation<TEntity>(IDbContextFactory<Monitorin
         string aggregateName,
         DateTime fromNonInclusive,
         DateTime toInclusive,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation)
     {
         await using var dbContext = await factory.CreateDbContextAsync();
 
@@ -110,39 +110,10 @@ public class EventsRepositoryImplementation<TEntity>(IDbContextFactory<Monitorin
         return target;
     }
 
-    public async Task<long> CountEntitiesIncreaseByPeriodAsync(
-        string aggregeteName, 
-        DateTime dateTimeTo, 
-        DateTime? dateTimeFrom = null, 
-        long eventTimeSequenceNumber = 0)
-    {
-        await using var dbContext = await factory.CreateDbContextAsync();
-        var dateFromSigned = dateTimeFrom ?? DateTime.MinValue;
-
-        var result = await dbContext.Events
-            .Where(e =>
-                e.AggregateNameProjection == aggregeteName &&
-                e.TimeStamp > dateFromSigned &&
-                e.CurrentTimeSequenceNumber > eventTimeSequenceNumber &&
-                e.TimeStamp <= dateTimeTo &&
-                (e.EventType == nameof(SubscriberJoinedEvent) || e.EventType == nameof(SubscriberLeftEvent)))
-            .GroupBy(e => 1)
-            .Select(g => new
-            {
-                Joined = g.Count(e => e.EventType == nameof(SubscriberJoinedEvent)),
-                Left = g.Count(e => e.EventType == nameof(SubscriberLeftEvent))
-            })
-            .FirstOrDefaultAsync();
-
-        var activeSubscribers = (result?.Joined ?? 0) - (result?.Left ?? 0);
-
-        return activeSubscribers;
-    }
-
     public override async Task<IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>>> GetEventsFromLastSnapshotAsync(
         AggregateSnapshot aggregateSnapshot,
         DateTime dateTimeTo,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation)
     {
         await using var dbContext = await factory.CreateDbContextAsync();
         var result = await dbContext.Events

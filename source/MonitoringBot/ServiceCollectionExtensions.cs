@@ -84,6 +84,8 @@ public static class ServiceCollectionExtensions
             return settingsBuilder.SnapshotCollectingSettingsSection;
         });
 
+        services.AddSingleton<CancellationContext>();
+
         // Retry service
         services.AddScoped<RetryServiceBase, RetryService>();
 

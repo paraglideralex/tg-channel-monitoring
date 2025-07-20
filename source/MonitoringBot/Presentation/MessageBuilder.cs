@@ -24,7 +24,8 @@ public class MessageBuilder(
         int botSubscribersCount,
         DateTime startWorkingTimeStamp,
         TelegramServiceState state,
-        string channelReference, 
+        string channelReference,
+        bool isActive,
         CancellationToken cancellationToken)
     {
         var sb = new StringBuilder();
@@ -39,6 +40,7 @@ public class MessageBuilder(
         sb.AppendLine($"Последний успешный поиск подписчиков: {state.LastSearchParticipantsTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
         sb.AppendLine($"Канал: {channelReference}");
         sb.AppendLine($"Среда: {Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")}");
+        sb.AppendLine($"Мониторинг активен: {(isActive ? "да" : "нет")}");
         sb.AppendLine($"Инфа от: {timeProvider.UtcNow.ToString("dd.MM.yyyy HH:mm")}");
         return sb.ToString();
     }
@@ -66,6 +68,7 @@ public class MessageBuilder(
 
     public async Task<string> NotificationMessageForOneAsync(
         ChannelMember member,
+        ServiceContext serviceContext,
         string? eventType = null)
     {
         var lastAction = DefineLastAction(member, eventType);
@@ -75,7 +78,8 @@ public class MessageBuilder(
             UserIdentity = member.Id,
             LastAction = lastAction,
             LastTimeStamp = member.TimeStamp,
-        });
+        },
+        serviceContext);
 
         if (lastTimeSpan is null)
             return await FormatMemberAsync(member, eventType);
@@ -89,7 +93,7 @@ public class MessageBuilder(
         return result;
     }
 
-    public async Task<string> NotificationMessageForManyAsync(IEnumerable<ChannelMember> members, string? eventType = null)
+    public async Task<string> NotificationMessageForManyAsync(IEnumerable<ChannelMember> members, ServiceContext serviceContext, string? eventType = null)
     {
         var sb = new StringBuilder();
 
@@ -97,7 +101,7 @@ public class MessageBuilder(
         foreach (var member in members)
         {
             sb.AppendLine($"Пользователь #{index}:");
-            sb.AppendLine(await NotificationMessageForOneAsync(member, eventType));
+            sb.AppendLine(await NotificationMessageForOneAsync(member, serviceContext, eventType));
             //sb.AppendLine();
             index++;
         }

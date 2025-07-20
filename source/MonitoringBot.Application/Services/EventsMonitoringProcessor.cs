@@ -26,7 +26,8 @@ public class EventsMonitoringProcessor<TEntity>(
             {
                 FromNonInclusive = lastCheckTimeStamp,
                 ToInclusive = timeProvider.UtcNow
-            });
+            },
+            serviceContext);
 
         var joined = new List<TEntity?>();
         var left = new List<TEntity?>();

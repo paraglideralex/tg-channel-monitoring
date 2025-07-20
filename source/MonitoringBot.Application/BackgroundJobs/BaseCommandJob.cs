@@ -8,6 +8,8 @@ using Serilog;
 
 using System.Text.Json;
 
+using TL;
+
 namespace MonitoringBot.Application.BackgroundJobs;
 
 public class BaseCommandJob<TCommand, TArguments>(TCommand command) : IJob
@@ -23,9 +25,11 @@ public class BaseCommandJob<TCommand, TArguments>(TCommand command) : IJob
             if (arguments is null)
                 Log.Error("Unable to deserialize job arguments.");
 
-            var serviceContext = GetServiceContext(context);
-            if(serviceContext is null)
+            var serviceContextDto = GetServiceContext(context);
+            if(serviceContextDto is null)
                 Log.Error("Unable to deserialize service context.");
+
+            var serviceContext = new ServiceContext { CorrelationId = serviceContextDto.CorrelationId, CancellationToken = context.CancellationToken };
 
             await command.ExecuteAsync(arguments!, serviceContext!);
         }

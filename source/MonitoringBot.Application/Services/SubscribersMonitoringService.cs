@@ -28,7 +28,7 @@ public class SubscribersMonitoringService(FetchUsersBackgroundServiceBase fetchU
     {
         var currentMonitoringContext = new ServiceContext { CancellationToken = cancellationToken, CorrelationId = Guid.NewGuid() };
 
-        var idsFromApi = await fetchUsersBackgroundService.GetExistingIdentitiesAsync();
+        var idsFromApi = await fetchUsersBackgroundService.GetExistingIdentitiesAsync(cancellationToken);
         if (idsFromApi is null)
         {
             Log.Error("Telegram API service fetching users process terminated with errors," +
@@ -40,7 +40,7 @@ public class SubscribersMonitoringService(FetchUsersBackgroundServiceBase fetchU
 
         var changes = entityChangeDetector.FindChanges(idsFromApi, idsFromRepository, telegramApiSettings.ChannelReferenceLink);
 
-        var joinedEntities = await fetchUsersBackgroundService.GetByIdsAsync(changes.EntitiesJoined);
+        var joinedEntities = await fetchUsersBackgroundService.GetByIdsAsync(changes.EntitiesJoined, cancellationToken);
         var leftEntities = await getSubscribersByIdentitiesQuery.ExecuteAsync(changes.EntitiesLeft, currentMonitoringContext);
 
         var eventsToBeProduced = entitiesChangeEventsCreator.ProduceEvents(joinedEntities, leftEntities, 

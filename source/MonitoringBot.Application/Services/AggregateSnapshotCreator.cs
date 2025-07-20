@@ -26,7 +26,8 @@ public sealed class AggregateSnapshotCreator<TEntity, TOnJoinedEventArgs, TOnLef
         {
             EntityAggregateNameProjection = aggregateName,
             Toinclusive = timeStamp
-        });
+        },
+        cancellationToken);
 
         if (lastEvents.Count == 0)
             return LastOrDefault(lastSnapshotByTime, aggregateName);
