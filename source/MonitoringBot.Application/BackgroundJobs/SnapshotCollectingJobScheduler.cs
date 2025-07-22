@@ -13,7 +13,6 @@ using System.Text.Json;
 
 namespace MonitoringBot.Application.BackgroundJobs;
 
-
 public class SnapshotCollectingJobScheduler<TEntity, TOnJoinedEvent, TOnLeftEvent>(
     SnapshotCollectingSettings snapshotCollectingSettings,
     ITimeProvider timeProvider,
@@ -75,6 +74,6 @@ public class SnapshotCollectingJobScheduler<TEntity, TOnJoinedEvent, TOnLeftEven
         foreach (var key in triggerKeyList)
             await scheduler.ResumeJob(key);
 
-        Log.Warning($"All background jobs of group \" {groupName}\" are paused.");
+        Log.Warning($"All background jobs of group \"{groupName}\" are resumed.");
     }
 }

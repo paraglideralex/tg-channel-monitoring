@@ -6,7 +6,7 @@ using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 
 namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
-internal class BotUserRepositoryImplementation(
+public sealed class BotUserRepositoryImplementation(
     IDbContextFactory<MonitoringBotDbContextBase> factory) : BotUserRepository
 {
     public override async Task AddBotUserAsync(BotUser user, DateTime timeStamp, CancellationToken token)

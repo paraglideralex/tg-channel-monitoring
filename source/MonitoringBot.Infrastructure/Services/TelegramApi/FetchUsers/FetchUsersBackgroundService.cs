@@ -19,7 +19,7 @@ public class FetchUsersBackgroundService : FetchUsersBackgroundServiceBase
         TelegramBotSettings settings,
         ApiUsersRepository apiUsersRepository,
         ITimeProvider timeProvider,
-        CancellationContext cancellationContext) : base(telegramService, settings, apiUsersRepository, timeProvider, cancellationContext)
+        MonitoringCancellationContext cancellationContext) : base(telegramService, settings, apiUsersRepository, timeProvider, cancellationContext)
     {
     }
 

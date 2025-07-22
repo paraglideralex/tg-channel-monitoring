@@ -1,4 +1,6 @@
-﻿using MonitoringBot.Application.Queries.Events;
+﻿using Microsoft.Extensions.Caching.Memory;
+
+using MonitoringBot.Application.Queries.Events;
 using MonitoringBot.Application.Queries.Events.Arguments;
 using MonitoringBot.Application.Queries.Snapshots;
 using MonitoringBot.Domain.Abstractions;
@@ -18,10 +20,12 @@ public class MessageBuilder(
     GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember> getLastPreviousEventQueryExecution,
     GetUsersCountForPeriodQueryExecution getUsersCountForPeriodQueryExecution,
     ClosestSnapshotByTimeQueryExecution closestSnapshotByTimeQueryExecution,
-    ITimeProvider timeProvider)
+    ITimeProvider timeProvider,
+    IMemoryCache memoryCache,
+    CacheKeysFactory cacheKeysFactory)
 {
-    public async Task<string> CheckDiagnosticsAsync(int dataUpdatePeriodSeconds, 
-        int botSubscribersCount,
+    public async Task<string> CheckDiagnosticsAsync(
+        int dataUpdatePeriodSeconds, 
         DateTime startWorkingTimeStamp,
         TelegramServiceState state,
         string channelReference,
@@ -33,7 +37,7 @@ public class MessageBuilder(
         sb.AppendLine($"Количество подписчиков: {await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent), cancellationToken)}");
         sb.AppendLine($"Период обновления данных, секунд: {dataUpdatePeriodSeconds}");
         sb.AppendLine($"Время подсчета подписчиков, секунд: {state.LastSearchParicipantsDurationSeconds}");
-        sb.AppendLine($"Количество текущих подписчиков на бота: {botSubscribersCount}");
+        sb.AppendLine($"Количество текущих подписчиков на бота: {BotUsersCount()}");
         sb.AppendLine($"Запущен: {startWorkingTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
         sb.AppendLine($"Статус инициализации: {state.IsInitialized}");
         sb.AppendLine($"Продолжительность работы: '{(timeProvider.UtcNow - startWorkingTimeStamp).FormattedDuration()}'");
@@ -43,6 +47,12 @@ public class MessageBuilder(
         sb.AppendLine($"Мониторинг активен: {(isActive ? "да" : "нет")}");
         sb.AppendLine($"Инфа от: {timeProvider.UtcNow.ToString("dd.MM.yyyy HH:mm")}");
         return sb.ToString();
+    }
+
+    private int BotUsersCount()
+    {
+        var count = memoryCache.TryGetValue(cacheKeysFactory.BotUsersCount(), out int? countObject);
+        return countObject ?? 0;
     }
 
     public async Task<string> LastAsync(string? eventType = null, int count = 5, CancellationToken cancellationToken = default)

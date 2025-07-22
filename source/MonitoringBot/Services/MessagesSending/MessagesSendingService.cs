@@ -16,11 +16,11 @@ public class MessagesSendingService // TODO: в будущем получать 
         TelegramBotSettings telegramApiSettings)
     {
         this.telegramBotClient = telegramBotClient;
-        this.botUsers = telegramApiSettings.ChatIdsCollection;
+        //this.botUsers = telegramApiSettings.ChatIdsCollection;
     }
 
     protected TelegramBotClient telegramBotClient;
-    protected List<long> botUsers;
+    //protected List<long> botUsers;
 
     private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
     public async Task TrySendMessageForAllAsync(List<long> chatIdsCollection, string? message, ServiceContext serviceContext)

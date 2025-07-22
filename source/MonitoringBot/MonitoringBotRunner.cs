@@ -1,5 +1,10 @@
-﻿using MonitoringBot.Application.Abstractions;
+﻿using Microsoft.Extensions.Caching.Memory;
+
+using MonitoringBot;
+using MonitoringBot.Application.Abstractions;
 using MonitoringBot.Application.BackgroundJobs;
+using MonitoringBot.Application.Commands;
+using MonitoringBot.Application.Queries.BotUsers;
 using MonitoringBot.Application.Services;
 using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Domain.Entities;
@@ -14,6 +19,7 @@ using MonitoringBot.Services.MessagesSending;
 using Serilog;
 
 using Telegram.BotAPI;
+using Telegram.BotAPI.AvailableTypes;
 using Telegram.BotAPI.GettingUpdates;
 
 
@@ -35,7 +41,11 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         SnapshotCollectingJobScheduler<TEntity, TOnJoinedEvent, TOnLeftEvent> snapshotCollectingJobScheduler,
         TelegramBotSettings telegramBotSettings,
         TelegramApiSettings telegramApiSettings,
-        CancellationContext cancellationContext)
+        MonitoringCancellationContext cancellationContext,
+        AddBotUserCommand addBotUserCommand,
+        IMemoryCache memoryCache,
+        CacheKeysFactory cacheKeysFactory,
+        GetActiveBotUsersQuery getActiveBotUsersQuery)
     {
         this.messagesSendingService = messagesSendingService;
         this.telegramBotClient = telegramBotClient;
@@ -50,6 +60,10 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         this.telegramBotSettings = telegramBotSettings;
         this.telegramApiSettings = telegramApiSettings;
         this.cancellationContext = cancellationContext;
+        this.addBotUserCommand = addBotUserCommand;
+        this.memoryCache = memoryCache;
+        this.cacheKeysFactory = cacheKeysFactory;
+        this.getActiveBotUsersQuery = getActiveBotUsersQuery;
     }
 
     private readonly EntitiesChangeMessagingService<ChannelMember> messagesSendingService;
@@ -64,7 +78,11 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     private readonly SnapshotCollectingJobScheduler<TEntity, TOnJoinedEvent, TOnLeftEvent> snapshotCollectingJobScheduler;
     private readonly TelegramBotSettings telegramBotSettings;
     private readonly TelegramApiSettings telegramApiSettings;
-    private readonly CancellationContext cancellationContext; 
+    private readonly MonitoringCancellationContext cancellationContext;
+    private readonly AddBotUserCommand addBotUserCommand;
+    private readonly IMemoryCache memoryCache;
+    private readonly CacheKeysFactory cacheKeysFactory;
+    private readonly GetActiveBotUsersQuery getActiveBotUsersQuery;
 
     private int checkPeriodSeconds;
     private DateTime basicTimeStamp;
@@ -101,16 +119,17 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                     continue;
                 }
 
-                long userId = update!.Message!.Chat.Id;
+                long? chatId = update?.Message?.Chat.Id;
 
-                Log.Information($"От пользователя {userId} получена команда {message}.");
+                Log.Information($"От пользователя {chatId} получена команда {message}.");
 
-                long chatId = update.Message.Chat.Id;
-                if (!telegramBotSettings.ChatIdsCollection.Contains(chatId))
-                {
-                    telegramBotSettings.ChatIdsCollection.Add(chatId);
-                    Log.Information($"В рассылку бота добавлен новый пользователь с Id {chatId}");
-                }
+                //if (chatId is not null && !telegramBotSettings.ChatIdsCollection.Contains(chatId.Value))
+                //{
+                //    telegramBotSettings.ChatIdsCollection.Add(chatId.Value);
+                //    Log.Information($"В рассылку бота добавлен новый пользователь с Id {chatId.Value}");
+                //}
+
+                await AddBotUserIfNew(update?.Message?.Chat, currentUpdateContext);
 
                 string? resultMessage = message switch
                 {
@@ -120,8 +139,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                     "/last_unsubscribed" => await messageBuilder.LastUnsubscribedAsync(cancellationToken: botCancellationTokenSource.Token),
                     "/change_period" => "будет менять период мониторинга",
                     "/check" => await messageBuilder.CheckDiagnosticsAsync(
-                                      checkPeriodSeconds, 
-                                      telegramBotSettings.ChatIdsCollection.Count,
+                                      checkPeriodSeconds,
                                       beginWorkingFrom,
                                       fetchUsersBackgroundService.GetState(),
                                       telegramApiSettings.ChannelReferenceLink,
@@ -131,14 +149,14 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
                     "/history_snapshot" => await messageBuilder.HistorySnapshotAsync(
                         telegramApiSettings.ChannelReferenceLink, 
                         currentUpdateContext),
-                    "//stop_service" => await StopAsync(userId),
-                    "//restart_service" => await RestartAsync(userId),
+                    "//stop_service" => await StopAsync(chatId.Value),
+                    "//restart_service" => await RestartAsync(chatId.Value),
                     _ => "это не известная мне команда..."
                 };
 
-                if (resultMessage is not null)
+                if (resultMessage is not null && chatId.HasValue)
                 {
-                    await messagesSendingService.TrySendMessageAsync(chatId, resultMessage, botCancellationTokenSource.Token);
+                    await messagesSendingService.TrySendMessageAsync(chatId.Value, resultMessage, botCancellationTokenSource.Token);
                     Log.Information($"Пользователю {chatId} отправлен ответ на {message}: '{resultMessage.TakeAndFormatFirst(300)}'.");
                 }
             }
@@ -184,6 +202,9 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         entitiesChangeMessageProducer.MessageProduced += messagesSendingService.OnMessageProduced;
 
         updates = await telegramBotClient.GetUpdatesAsync(cancellationToken: cancellationContext.Token);
+
+        var botUsers = await getActiveBotUsersQuery.ExecuteAsync(baseServiceContext);
+
         await fetchUsersBackgroundService.LoginAsync();
         bool apiServiceInitializationSuccess = await fetchUsersBackgroundService.InitializeServiceAsync();
         if(!apiServiceInitializationSuccess)
@@ -240,6 +261,47 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
 
         Log.Warning("🔄Работа по мониторингу возобновлена.✅");
         return "🔄Работа по мониторингу возобновлена.✅";
+    }
+
+    private async Task AddBotUserIfNew(Chat? chat, ServiceContext serviceContext)
+    {
+        long? chatId = chat?.Id;
+        var currentUsers = GetCachedUsers();
+
+        if (chatId is not null && !currentUsers.Any(u => u.Id == chatId.Value))
+        {
+            var newUser = new BotUser
+            {
+                Id = chatId.Value,
+                FirstName = chat.FirstName,
+                LastName = chat.LastName,
+                IsForum = chat.IsForum,
+                Title = chat.Title,
+                Type = chat.Type,
+                UserName = chat.Username
+            };
+
+            currentUsers.Add(newUser);
+            memoryCache.Set<HashSet<BotUser>>(cacheKeysFactory.BotUsersKey(), currentUsers);
+            memoryCache.Set<int>(cacheKeysFactory.BotUsersCount(), currentUsers.Count);
+
+            await addBotUserCommand.ExecuteAsync(
+                newUser,
+                serviceContext);
+
+            Log.Information($"В рассылку бота добавлен новый пользователь с Id {chatId.Value}");
+        }
+    }
+
+    private
+
+    private HashSet<BotUser> GetCachedUsers()
+    {
+        _ = memoryCache.TryGetValue(cacheKeysFactory.BotUsersKey(), out object? cachedUsersObject);
+
+        if (cachedUsersObject is HashSet<BotUser> users)
+            return users;
+        return [];
     }
 
     public async Task MainLoopAsync()

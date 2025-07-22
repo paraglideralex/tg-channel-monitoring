@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 using MonitoringBot.Application.Abstractions;
 using MonitoringBot.Application.BackgroundJobs;
@@ -84,7 +85,9 @@ public static class ServiceCollectionExtensions
             return settingsBuilder.SnapshotCollectingSettingsSection;
         });
 
-        services.AddSingleton<CancellationContext>();
+        services.AddSingleton<MonitoringCancellationContext>();
+        services.AddSingleton<IMemoryCache, MemoryCache>();
+        services.AddSingleton<CacheKeysFactory>();
 
         // Retry service
         services.AddScoped<RetryServiceBase, RetryService>();
@@ -108,12 +111,11 @@ public static class ServiceCollectionExtensions
         },
         lifetime: ServiceLifetime.Scoped);
 
-        //services.AddScoped<IDesignTimeDbContextFactory<MonitoringBotDbContextBase>, DesignTimeDbContextFactory>();
-
         services.AddTransient<EventRepository<ChannelMember>, EventsRepositoryImplementation<ChannelMember>>();
         services.AddTransient<SnapshotRepository, SnapshotRepositoryImplementation>();
         services.AddTransient<UserRepository, UsersRepositoryInMemoryImplementation>();
         services.AddTransient<ApiUsersRepository,  ApiUsersRepositoryImplementation>();
+        services.AddTransient<BotUserRepository, BotUserRepositoryImplementation>();
 
         services.AddTransient<AggregateSnapshotCreator<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
         services.AddTransient<CreateSnapshotCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
@@ -156,6 +158,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<MonitoringPresentation>();
         services.AddTransient<EntitiesChangeMessagingService<ChannelMember>>();
         services.AddTransient<EntitiesChangeMessageProducer<ChannelMember>, SubscribersChangeMessageProducer>();
+        services.AddTransient<AddBotUserCommand>();
 
         services.AddScoped<IMonitoringService<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>, SubscribersMonitoringService>();
 

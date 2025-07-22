@@ -1,6 +1,6 @@
 ﻿namespace MonitoringBot.Infrastructure;
 
-public class CancellationContext
+public class MonitoringCancellationContext
 {
     private readonly SemaphoreSlim semaphore = new(1, 1);
     private CancellationTokenSource cancellationTokenSource = new();

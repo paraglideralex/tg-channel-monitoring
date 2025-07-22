@@ -15,14 +15,14 @@ public abstract class FetchUsersBackgroundServiceBase
     protected readonly TelegramApiServiceBase? telegramService;
     protected readonly ApiUsersRepository apiUsersRepository;
     protected readonly ITimeProvider timeProvider;
-    protected readonly CancellationContext cancellationContext;
+    protected readonly MonitoringCancellationContext cancellationContext;
 
     public FetchUsersBackgroundServiceBase(
         TelegramChannelService telegramService,
         TelegramBotSettings settings,
         ApiUsersRepository apiUsersRepository,
         ITimeProvider timeProvider,
-        CancellationContext cancellationContext)
+        MonitoringCancellationContext cancellationContext)
     {
         this.telegramService = telegramService;
         updateInterval = TimeSpan.FromSeconds(settings.CheckPeriodSeconds);
