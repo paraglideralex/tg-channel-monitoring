@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MonitoringBot.Infrastructure.Migrations
 {
     [DbContext(typeof(MonitoringBotDbContextBase))]
-    partial class MonitoringBotDbContextBaseModelSnapshot : ModelSnapshot
+    [Migration("20250722181708_IsCurrentBotUser")]
+    partial class IsCurrentBotUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

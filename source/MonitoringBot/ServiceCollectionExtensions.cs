@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using MonitoringBot.Application.Abstractions;
 using MonitoringBot.Application.BackgroundJobs;
 using MonitoringBot.Application.Commands;
+using MonitoringBot.Application.Queries.BotUsers;
 using MonitoringBot.Application.Queries.Events;
 using MonitoringBot.Application.Queries.Projections;
 using MonitoringBot.Application.Queries.Snapshots;
@@ -159,6 +160,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<EntitiesChangeMessagingService<ChannelMember>>();
         services.AddTransient<EntitiesChangeMessageProducer<ChannelMember>, SubscribersChangeMessageProducer>();
         services.AddTransient<AddBotUserCommand>();
+        services.AddTransient<GetActiveBotUsersQuery>();
 
         services.AddScoped<IMonitoringService<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>, SubscribersMonitoringService>();
 

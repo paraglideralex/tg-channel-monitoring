@@ -5,6 +5,8 @@ using MonitoringBot.Domain.RepositoriesAbstarctions;
 using MonitoringBot.Infrastructure.Extensions;
 using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 
+using TL;
+
 namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
 public sealed class BotUserRepositoryImplementation(
     IDbContextFactory<MonitoringBotDbContextBase> factory) : BotUserRepository
@@ -13,7 +15,8 @@ public sealed class BotUserRepositoryImplementation(
     {
         await using var dbContext = await factory.CreateDbContextAsync(token);
 
-        await dbContext.BotUsers.AddAsync(user.ToEntity(true, timeStamp));
+        await dbContext.BotUsers.AddAsync(user.ToEntity(true, timeStamp), token);
+        await dbContext.SaveChangesAsync(token);
     }
 
     public override async Task UpdateBotUserAsync(BotUser user, bool isCurrent, DateTime timeStamp, CancellationToken token)
@@ -41,8 +44,10 @@ public sealed class BotUserRepositoryImplementation(
         throw new NotImplementedException();
     }
 
-    public override Task<IReadOnlyCollection<BotUser>> GetCurrentUsers(CancellationToken token)
+    public override async Task<IReadOnlyCollection<BotUser>> GetCurrentUsers(CancellationToken token)
     {
-        throw new NotImplementedException();
+        await using var dbContext = await factory.CreateDbContextAsync(token);
+
+        return await dbContext.BotUsers.Where(u => u.IsCurrent).Select(u => u.ToDomain()).ToListAsync(token);
     }
 }

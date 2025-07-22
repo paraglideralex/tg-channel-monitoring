@@ -22,7 +22,6 @@ using Telegram.BotAPI;
 using Telegram.BotAPI.AvailableTypes;
 using Telegram.BotAPI.GettingUpdates;
 
-
 public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
     where TEntity : ISearchableEntity
     where TOnJoinedEvent : EntitiesChangedDomainEventBase<TEntity>, new()
@@ -212,7 +211,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
             var message = $"Не удалось корректно инициализировать сервис сбора подписчиков '${nameof(TelegramChannelService)}'.";
             Log.Fatal(message);
             await messagesSendingService.TrySendMessageForAllAsync(
-                telegramBotSettings.ChatIdsCollection, 
+                GetCurrentBotUsersIds(botUsers), 
                 message,
                 baseServiceContext);
             return;
@@ -221,7 +220,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         fetchUsersBackgroundService.Start();
 
         await messagesSendingService.TrySendMessageForAllAsync(
-            telegramBotSettings.ChatIdsCollection,
+            GetCurrentBotUsersIds(botUsers),
             "Я загрузился🚀! Наблюдаю...  👀🔎",
             new() { CancellationToken = cancellationContext.Token, CorrelationId = Guid.NewGuid() });
 
@@ -293,7 +292,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>
         }
     }
 
-    private
+    private List<long> GetCurrentBotUsersIds(IReadOnlyCollection<BotUser> users) => users.Select(u => u.Id).ToList();
 
     private HashSet<BotUser> GetCachedUsers()
     {
