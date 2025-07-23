@@ -1,9 +1,6 @@
-﻿using Microsoft.Extensions.Caching.Memory;
-
+﻿using MonitoringBot.Application.Abstractions;
 using MonitoringBot.Application.Events;
-using MonitoringBot.Domain.Entities;
 using MonitoringBot.Infrastructure;
-using MonitoringBot.Infrastructure.Settings;
 
 using Serilog;
 
@@ -11,25 +8,13 @@ using Telegram.BotAPI;
 
 namespace MonitoringBot.Services.MessagesSending;
 
-public sealed class EntitiesChangeMessagingService<TEntity> : MessagesSendingService
+public sealed class EntitiesChangeMessagingService<TEntity>(
+    TelegramBotClient telegramBotClient,
+    IBotUsersService botUsersService) : MessagesSendingService(telegramBotClient)
 {
-    private readonly IMemoryCache memoryCache;
-    CacheKeysFactory cacheKeysFactory;
-    public EntitiesChangeMessagingService(
-        TelegramBotClient telegramBotClient,
-        TelegramBotSettings telegramBotSettings,
-        IMemoryCache memoryCache,
-        CacheKeysFactory cacheKeysFactory)
-        : base(telegramBotClient, telegramBotSettings)
-    {
-        this.memoryCache = memoryCache;
-        this.cacheKeysFactory = cacheKeysFactory;
-    }
-
     public async Task OnMessageProduced(object? sender, MessageCreatedEventArgs args, ServiceContext serviceContext)
     {
-        _ = memoryCache.TryGetValue(cacheKeysFactory.BotUsersKey(), out HashSet<BotUser>? botUsersObject);
-        var keys = botUsersObject?.Select(u => u.Id).ToList();
+        var keys = botUsersService.GetCachedBotUsersIds();
 
         if (keys is not null)
             await TrySendMessageForAllAsync(keys, args.Message, serviceContext);

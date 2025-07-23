@@ -1,4 +1,4 @@
-﻿namespace MonitoringBot;
+﻿namespace MonitoringBot.Infrastructure.Caching;
 
 public sealed class CacheKeysFactory
 {

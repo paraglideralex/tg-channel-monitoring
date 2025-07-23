@@ -15,6 +15,7 @@ using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Domain.RepositoriesAbstarctions;
 using MonitoringBot.Domain.Services;
 using MonitoringBot.Infrastructure;
+using MonitoringBot.Infrastructure.Caching;
 using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 using MonitoringBot.Infrastructure.RepositoriesImplementations;
 using MonitoringBot.Infrastructure.Services;
@@ -161,6 +162,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<EntitiesChangeMessageProducer<ChannelMember>, SubscribersChangeMessageProducer>();
         services.AddTransient<AddBotUserCommand>();
         services.AddTransient<GetActiveBotUsersQuery>();
+        services.AddTransient<IBotUsersService,  BotUsersService>();
 
         services.AddScoped<IMonitoringService<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>, SubscribersMonitoringService>();
 

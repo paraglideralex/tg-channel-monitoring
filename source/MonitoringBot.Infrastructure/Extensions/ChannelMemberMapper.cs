@@ -40,7 +40,7 @@ public static class ChannelMemberMapper
         entity.Phone ?? string.Empty,
         entity.TimeStamp ?? DateTime.MinValue,
         entity.Created ?? DateTime.MinValue,
-        entity.ChannelReference,
+        entity.ChannelReference ?? "",
         entity.LastAction
     );
 }

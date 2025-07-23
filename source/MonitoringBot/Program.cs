@@ -30,7 +30,7 @@ app.MapGet("/", () => "Go to /quartz to see background jobs details.");
 
 await ApplyMigrationsIfNeededAsync<MonitoringBotDbContextBase>(app);
 
-await app.RunAsync(settingsBuilder.QuartzSettingsSection.DebuggerEndpoint);
+await app.RunAsync(settingsBuilder.QuartzSettingsSection?.DebuggerEndpoint);
 
 static async Task ApplyMigrationsIfNeededAsync<T>(WebApplication app) where T : DbContext
 {

@@ -9,18 +9,9 @@ using Telegram.BotAPI.AvailableMethods;
 
 namespace MonitoringBot.Services.MessagesSending;
 
-public class MessagesSendingService // TODO: в будущем получать юзеров бота из репозитория, так нельзя
+public class MessagesSendingService(TelegramBotClient telegramBotClient)
 {
-    public MessagesSendingService(
-        TelegramBotClient telegramBotClient,
-        TelegramBotSettings telegramApiSettings)
-    {
-        this.telegramBotClient = telegramBotClient;
-        //this.botUsers = telegramApiSettings.ChatIdsCollection;
-    }
-
-    protected TelegramBotClient telegramBotClient;
-    //protected List<long> botUsers;
+    protected TelegramBotClient telegramBotClient = telegramBotClient;
 
     private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
     public async Task TrySendMessageForAllAsync(List<long> chatIdsCollection, string? message, ServiceContext serviceContext)

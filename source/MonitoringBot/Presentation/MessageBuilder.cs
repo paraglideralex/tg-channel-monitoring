@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 
+using MonitoringBot.Application.Abstractions;
 using MonitoringBot.Application.Queries.Events;
 using MonitoringBot.Application.Queries.Events.Arguments;
 using MonitoringBot.Application.Queries.Snapshots;
@@ -21,9 +22,14 @@ public class MessageBuilder(
     GetUsersCountForPeriodQueryExecution getUsersCountForPeriodQueryExecution,
     ClosestSnapshotByTimeQueryExecution closestSnapshotByTimeQueryExecution,
     ITimeProvider timeProvider,
-    IMemoryCache memoryCache,
-    CacheKeysFactory cacheKeysFactory)
+    IBotUsersService botUsersService)
 {
+    public string Loaded() => "Я загрузился🚀! Наблюдаю...  👀🔎";
+
+    public string Paused() => "⛔Работа по мониторингу остановлена.⛔";
+
+    public string Resumed() => "🔄Работа по мониторингу возобновлена.✅";
+
     public async Task<string> CheckDiagnosticsAsync(
         int dataUpdatePeriodSeconds, 
         DateTime startWorkingTimeStamp,
@@ -37,7 +43,7 @@ public class MessageBuilder(
         sb.AppendLine($"Количество подписчиков: {await userRepository.CountByLastActionAsync(nameof(SubscriberJoinedEvent), cancellationToken)}");
         sb.AppendLine($"Период обновления данных, секунд: {dataUpdatePeriodSeconds}");
         sb.AppendLine($"Время подсчета подписчиков, секунд: {state.LastSearchParicipantsDurationSeconds}");
-        sb.AppendLine($"Количество текущих подписчиков на бота: {BotUsersCount()}");
+        sb.AppendLine($"Количество текущих подписчиков на бота: {botUsersService.BotUsersCount()}");
         sb.AppendLine($"Запущен: {startWorkingTimeStamp.ToString("dd.MM.yyyy HH:mm")}");
         sb.AppendLine($"Статус инициализации: {state.IsInitialized}");
         sb.AppendLine($"Продолжительность работы: '{(timeProvider.UtcNow - startWorkingTimeStamp).FormattedDuration()}'");
@@ -47,12 +53,6 @@ public class MessageBuilder(
         sb.AppendLine($"Мониторинг активен: {(isActive ? "да" : "нет")}");
         sb.AppendLine($"Инфа от: {timeProvider.UtcNow.ToString("dd.MM.yyyy HH:mm")}");
         return sb.ToString();
-    }
-
-    private int BotUsersCount()
-    {
-        var count = memoryCache.TryGetValue(cacheKeysFactory.BotUsersCount(), out int? countObject);
-        return countObject ?? 0;
     }
 
     public async Task<string> LastAsync(string? eventType = null, int count = 5, CancellationToken cancellationToken = default)
