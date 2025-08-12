@@ -12,5 +12,6 @@ public class DateConversionTests
         long input = 638874999980000000;
         var result = input.ToUtcDateTime();
         Assert.That(result, Is.EqualTo(new DateTime(2025, 7, 7, 15, 46, 38)));
+        Assert.That(result.Kind, Is.EqualTo(DateTimeKind.Utc));
     }
 }

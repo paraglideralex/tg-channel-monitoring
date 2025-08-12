@@ -6,16 +6,25 @@ namespace MonitoringBot.Infrastructure.Tests;
 
 internal class RetryServiceTests
 {
-    private RetryService retryService = new();
+    private RetryService retryService;
+    private CancellationToken cancellationToken;
+    TestRetries testRetries;
+
+    [SetUp]
+    public void SetUp()
+    {
+        retryService = new RetryService();
+        cancellationToken = new CancellationToken();
+        testRetries = new TestRetries();
+    }
 
     [Test]
     public async Task BasicSuccess()
     {
-        TestRetries testRetries = new();
-
         bool result = await retryService.ExecuteRetryAsync(
-            testRetries.DoStuff,
+            x => testRetries.DoStuff(cancellationToken),
             nameof(testRetries.DoStuff),
+            cancellationToken,
             maxRetries: 3,
             secondsInitialWait: 1,
             DelayIncreaseType.Linear);
@@ -28,11 +37,10 @@ internal class RetryServiceTests
     [Test]
     public async Task BasicFail()
     {
-        TestRetries testRetries = new();
-
         bool result = await retryService.ExecuteRetryAsync(
-            testRetries.DoAnotherStuff,
+            x => testRetries.DoAnotherStuff(cancellationToken),
             nameof(testRetries.DoAnotherStuff),
+            cancellationToken,
             maxRetries: 3,
             secondsInitialWait: 1,
             DelayIncreaseType.Exponential);
@@ -48,7 +56,7 @@ internal class TestRetries()
     public bool Flag = false;
     public int Counter = 0;
 
-    public async Task<bool> DoStuff()
+    public async Task<bool> DoStuff(CancellationToken cancellationToken)
     {
         Counter++;
         if (Counter == 3)
@@ -59,7 +67,7 @@ internal class TestRetries()
         return await Task.FromResult(false);
     }
 
-    public async Task<bool> DoAnotherStuff()
+    public async Task<bool> DoAnotherStuff(CancellationToken cancellationToken)
     {
         Counter++;
         return await Task.FromResult(false);

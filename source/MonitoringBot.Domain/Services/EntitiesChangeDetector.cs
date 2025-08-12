@@ -1,7 +1,5 @@
 ﻿using MonitoringBot.Domain.Abstractions;
-using MonitoringBot.Domain.Events;
 using MonitoringBot.Domain.Projections;
-using System.Security.Principal;
 
 namespace MonitoringBot.Domain.Services;
 
