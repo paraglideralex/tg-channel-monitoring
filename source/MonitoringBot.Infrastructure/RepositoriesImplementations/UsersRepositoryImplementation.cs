@@ -6,10 +6,9 @@ using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 
 namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
 
-public class UsersRepositoryInMemoryImplementation(
+public class UsersRepositoryImplementation(
     IDbContextFactory<MonitoringBotDbContextBase> factory) : UserRepository
 {
-
     public override async Task AddRangeAsync(IEnumerable<ChannelMember> users, string? lastAction, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);

@@ -1,4 +1,6 @@
-﻿using MonitoringBot.Application.Abstractions;
+﻿using Microsoft.IdentityModel.Tokens;
+
+using MonitoringBot.Application.Abstractions;
 using MonitoringBot.Application.Commands;
 using MonitoringBot.Application.Queries.Projections;
 using MonitoringBot.Domain.Abstractions;
@@ -10,11 +12,10 @@ using MonitoringBot.Infrastructure.Settings;
 
 using Serilog;
 
-using System.Linq;
-
 namespace MonitoringBot.Application.Services;
 
-public class SubscribersMonitoringService(FetchUsersBackgroundServiceBase fetchUsersBackgroundService,
+public class SubscribersMonitoringService(
+    FetchUsersBackgroundServiceBase fetchUsersBackgroundService,
     GetAllCurrentSubscribersIdentitiesQuery getAllCurrentSubscribersIdentitiesQuery,
     IEntitiesChangeDetector<long> entityChangeDetector,
     AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent> addEventsCommand,
@@ -40,8 +41,13 @@ public class SubscribersMonitoringService(FetchUsersBackgroundServiceBase fetchU
 
         var changes = entityChangeDetector.FindChanges(idsFromApi, idsFromRepository, telegramApiSettings.ChannelReferenceLink);
 
-        var joinedEntities = await fetchUsersBackgroundService.GetByIdsAsync(changes.EntitiesJoined, cancellationToken);
-        var leftEntities = await getSubscribersByIdentitiesQuery.ExecuteAsync(changes.EntitiesLeft, currentMonitoringContext);
+        var joinedEntities = changes.EntitiesJoined.IsNullOrEmpty()
+            ? []
+            : await fetchUsersBackgroundService.GetByIdsAsync(changes.EntitiesJoined, cancellationToken);
+
+        var leftEntities = changes.EntitiesLeft.IsNullOrEmpty()
+            ? []
+            : await getSubscribersByIdentitiesQuery.ExecuteAsync(changes.EntitiesLeft, currentMonitoringContext);
 
         var eventsToBeProduced = entitiesChangeEventsCreator.ProduceEvents(joinedEntities, leftEntities, 
             telegramApiSettings.ChannelReferenceLink);
@@ -52,7 +58,7 @@ public class SubscribersMonitoringService(FetchUsersBackgroundServiceBase fetchU
             if (addResult is not true)
             {
                 Log.Error($"Incoming events were not added to events store due to internal errors and " +
-                    $"will not be processed during current monitoring step. Events: {string.Join(';', eventsToBeProduced)}");
+                    $"will not be processed during current monitoring step. Events: {string.Join(';', eventsToBeProduced)}.");
 
                 return;
             }

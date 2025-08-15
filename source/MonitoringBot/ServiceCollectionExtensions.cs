@@ -115,7 +115,7 @@ public static class ServiceCollectionExtensions
 
         services.AddTransient<EventRepository<ChannelMember>, EventsRepositoryImplementation<ChannelMember>>();
         services.AddTransient<SnapshotRepository, SnapshotRepositoryImplementation>();
-        services.AddTransient<UserRepository, UsersRepositoryInMemoryImplementation>();
+        services.AddTransient<UserRepository, UsersRepositoryImplementation>();
         services.AddTransient<ApiUsersRepository,  ApiUsersRepositoryImplementation>();
         services.AddTransient<BotUserRepository, BotUserRepositoryImplementation>();
 

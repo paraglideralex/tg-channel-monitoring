@@ -21,13 +21,4 @@
     <ProjectReference Include="..\CommonTestsUtilities\CommonTestsUtilities.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="Configurations\testDatabaseSettings.Development.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Configurations\testDatabaseSettings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>

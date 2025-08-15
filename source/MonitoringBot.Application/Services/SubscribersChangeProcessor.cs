@@ -5,8 +5,6 @@ using MonitoringBot.Infrastructure;
 
 using Serilog;
 
-using System.ComponentModel.Design;
-
 namespace MonitoringBot.Application.Services;
 
 public class SubscribersChangeProcessor(

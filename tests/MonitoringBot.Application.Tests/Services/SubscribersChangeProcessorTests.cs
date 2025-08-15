@@ -22,6 +22,7 @@ public class SubscribersChangeProcessorTests
     private AddOrUpdateSubscribersCommand? addOrUpdateSubscribersCommand;
     private const string eventName = nameof(SubscriberJoinedEvent);
     private Mock<ITimeProvider> timeProviderMock;
+    private ServiceContext serviceContext;
 
     [SetUp]
     public void SetUp()
@@ -45,6 +46,8 @@ public class SubscribersChangeProcessorTests
         eventsMonitoringProcessorMock = new Mock<IEventsMonitoringProcessor<ChannelMember>>();
         eventsMonitoringProcessorMock.Object.EntitiesJoined += monitoringEngine!.OnSubscribersQuantityChanged;
         eventsMonitoringProcessorMock.Object.EntitiesLeft += monitoringEngine!.OnSubscribersQuantityChanged;
+
+        serviceContext = new() { CancellationToken = CancellationToken.None };
     }
 
     [Test]
@@ -60,12 +63,13 @@ public class SubscribersChangeProcessorTests
         await eventsMonitoringProcessorMock!.RaiseAsync(
             d => d.EntitiesJoined += null!,
             eventsMonitoringProcessorMock.Object,
-            eventArgs);
+            eventArgs,
+            serviceContext);
 
         // Assert
         usersRepositoryMock!.Verify(
             repo => repo.AddRangeAsync(It.Is<IEnumerable<ChannelMember>>(actual =>
-                actual.SequenceEqual(allChannelMembers!)), eventName),
+                actual.SequenceEqual(allChannelMembers!)), eventName, It.IsAny<CancellationToken>()),
             Times.Once()
         );
     }
@@ -79,19 +83,20 @@ public class SubscribersChangeProcessorTests
             entitiesDifference: allChannelMembers!,
             eventName);
 
-        usersRepositoryMock.Setup(x => x.FindByIdsAsync(It.IsAny<IEnumerable<long>>()))
+        usersRepositoryMock.Setup(x => x.FindByIdsAsync(It.IsAny<IEnumerable<long>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(allChannelMembers);
 
         // Act
         await eventsMonitoringProcessorMock!.RaiseAsync(
             d => d.EntitiesLeft += null!,
             eventsMonitoringProcessorMock.Object,
-            eventArgs);
+            eventArgs,
+            serviceContext);
 
         // Assert
         usersRepositoryMock!.Verify(
             repo => repo.UpdateRangeAsync(It.Is<IEnumerable<ChannelMember>>(actual =>
-                actual.SequenceEqual(allChannelMembers!)), eventName, It.IsAny<DateTime>()),
+                actual.SequenceEqual(allChannelMembers!)), eventName, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()),
             Times.Once()
         );
     }

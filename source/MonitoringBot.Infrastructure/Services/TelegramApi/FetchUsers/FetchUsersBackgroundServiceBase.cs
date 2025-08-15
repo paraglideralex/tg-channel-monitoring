@@ -10,7 +10,6 @@ namespace MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
 
 public abstract class FetchUsersBackgroundServiceBase
 {
-    //protected volatile List<ChannelMember> currentUsers = [];
     protected readonly TimeSpan updateInterval;
     protected readonly TelegramApiServiceBase? telegramService;
     protected readonly ApiUsersRepository apiUsersRepository;
@@ -30,6 +29,8 @@ public abstract class FetchUsersBackgroundServiceBase
         this.timeProvider = timeProvider;
         this.cancellationContext = cancellationContext;
     }
+
+    public FetchUsersBackgroundServiceBase() { }
 
     public abstract Task<bool> InitializeServiceAsync();
 
