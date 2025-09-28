@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.IdentityModel.Tokens;
 
 using MonitoringBot.Application.Abstractions;
 using MonitoringBot.Application.Queries.Events;
@@ -22,7 +23,8 @@ public class MessageBuilder(
     GetUsersCountForPeriodQueryExecution getUsersCountForPeriodQueryExecution,
     ClosestSnapshotByTimeQueryExecution closestSnapshotByTimeQueryExecution,
     ITimeProvider timeProvider,
-    IBotUsersService botUsersService)
+    IBotUsersService botUsersService,
+    GetUserByNickNameQueryExecution getUserByNickNameQueryExecution)
 {
     public string Loaded() => "Я загрузился🚀! Наблюдаю...  👀🔎";
 
@@ -74,7 +76,10 @@ public class MessageBuilder(
     }
 
     public string Info(string channelReference) =>
-        $"Данный бот предоставляет для канала {channelReference} информацию о хороших новых подписчиках ❤️ и плохих отписавшихся 💩";
+        $"Данный бот предоставляет для канала {channelReference} информацию о хороших новых подписчиках ❤️ и плохих отписавшихся 💩.\r\n\r\n" +
+        $"Сейчас он также тестовом режиме поддерживает запросы по участникам и даёт возможность узнать, отписался ли от канала человек или нет.\r\n\r\n" +
+        $"Вот образец запроса:\r\n\r\n" +
+        $"/isDick/userName";
 
     public async Task<string> NotificationMessageForOneAsync(
         ChannelMember member,
@@ -229,6 +234,32 @@ public class MessageBuilder(
             return $"В силу деградации человеческих потребностей и оскуднения мышления среднестатистического потребителя" +
                 $"соцсетевого контента наше количество за {name} уменьшилось с {previousCount} до {currentCount} 🤡.";
         else return $"Вот уже {name} мы стабильно держим отметку в {currentCount} подписчиков👍🏼.";
+    }
+
+    public async Task<string> IsDickAsync(string? inputEndpoint, ServiceContext serviceContext)
+    {
+        if (inputEndpoint.IsNullOrEmpty())
+            return "Строка запроса пустая или её не существует...";
+
+        var endpointParts = inputEndpoint!.Split('/');
+        if (endpointParts.Length < 3)
+        {
+            return "Не удалось распознать в запросе никнейм юзера. Напомним, что запрос строится по принципу:" +
+                "/isDick/userNickName без @ перед его ником.";
+        }
+        var name = endpointParts[2];
+
+        var user = await getUserByNickNameQueryExecution.ExecuteAsync(new GetUserByNameQuery { UserNickName = name }, serviceContext);
+        if (user is null)
+            return $"Такой юзер с ником {name} на нас ещё не был подписан, либо его нет в базе данных.";
+
+        if (user.LastAction is nameof(SubscriberJoinedEvent))
+            return $"Этот юзер порядочный👍, и он подписан на нас с {user.TimeStamp?.ToString("dd.MM.yyyy HH:mm")}.";
+
+        if (user.LastAction is nameof(SubscriberLeftEvent))
+            return $"Этот юзер попрощался со своим будущим  в дизайне 🚮 и ушёл {user.TimeStamp?.ToString("dd.MM.yyyy HH:mm")} 🚽.";
+
+        return "На данный момент у нас нет данных о действиях этого юзера...";
     }
 
     private string MapActions(string action) => action switch

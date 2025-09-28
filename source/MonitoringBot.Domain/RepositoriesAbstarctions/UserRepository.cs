@@ -18,4 +18,5 @@ public abstract class UserRepository
     public abstract Task<List<ChannelMember>> TakeLast(int count = 5, CancellationToken cancellationToken = default);
     public abstract Task<List<ChannelMember>> TakeLastByActionAsync(string lastAction, CancellationToken cancellationToken, int count = 5);
     public abstract Task<List<long>> AllSubscribedIdentitiesAsync(CancellationToken cancellationToken);
+    public abstract Task<ChannelMember?> FindByNickNameAsync(string nickName, CancellationToken cancellationToken);
 }

@@ -4,6 +4,8 @@ using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
 using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 
+using NetTopologySuite.Operation.Distance3D;
+
 namespace MonitoringBot.Infrastructure.RepositoriesImplementations;
 
 public class UsersRepositoryImplementation(
@@ -153,5 +155,16 @@ public class UsersRepositoryImplementation(
             .AsNoTracking()
             .Where(cm => cm.LastAction == nameof(SubscriberJoinedEvent))
             .Select(u => u.Id).ToListAsync(cancellationToken);
+    }
+
+    public override async Task<ChannelMember?> FindByNickNameAsync(string nickName, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        
+        var user = await context.ChannelMembers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cm => cm.NickName == nickName, cancellationToken);
+
+        return user?.ToDomain();
     }
 }

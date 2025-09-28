@@ -149,6 +149,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ClosestSnapshotByTimeQueryExecution>();
         services.AddTransient<GetSubscribersByIdentitiesQuery>();
         services.AddTransient<GetAllCurrentSubscribersIdentitiesQuery>();
+        services.AddTransient<GetUserByNickNameQueryExecution>();
 
         services.AddTransient<IEntitiesChangeDetector<long>, EntitiesChangeDetector<long>>();
         services.AddTransient<AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>>();
