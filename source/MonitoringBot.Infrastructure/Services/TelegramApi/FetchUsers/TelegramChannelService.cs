@@ -1,8 +1,10 @@
-﻿using MonitoringBot.Domain.Entities;
+﻿using MonitoringBot.Domain.Abstractions;
 using MonitoringBot.Infrastructure.Diagnostics;
+using MonitoringBot.Infrastructure.Persistence.Entities;
 using MonitoringBot.Infrastructure.Services.FaultSafety;
 using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
 using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
+using MonitoringBot.Infrastructure.Settings;
 
 using Serilog;
 
@@ -17,17 +19,17 @@ public class TelegramChannelService : TelegramApiServiceBase
     private const int delayBetweenParticipantsRequestsMilliseconds = 1050;
     private Channel? channel;
 
-    public TelegramChannelService(TelegramConfig config, string? channelReference, RetryServiceBase retryService)
-        : base(config, channelReference, retryService)
+    public TelegramChannelService(TelegramConfig config, TelegramApiSettings settings, RetryServiceBase retryService, ITimeProvider timeProvider)
+        : base(config, settings, retryService, timeProvider)
     {
     }
 
-    private async Task<bool> TryInitializeChannelAsync()
+    private async Task<bool> TryInitializeChannelAsync(CancellationToken cancellationToken)
     {
-        var channel = await TryGetChannelByReferenceAsync(channelReference);
+        var channel = await TryGetAllDialogsAsync(channelReference, cancellationToken);
         if (channel is null)
         {
-            Log.Error($"Не удалось найти доступный канал со ссылкой '{channelReference}'");
+            Log.Fatal($"Не удалось найти доступный канал со ссылкой '{channelReference}'");
             return false;
         }
 
@@ -39,12 +41,7 @@ public class TelegramChannelService : TelegramApiServiceBase
         }
     }
 
-    private async Task<Channel?> TryGetChannelByReferenceAsync(string channelReference)
-    {
-        return await TryGetAllDialogsAsync(channelReference);
-    }
-
-    private async Task<Channel?> TryGetAllDialogsAsync(string channelReference)
+    private async Task<Channel?> TryGetAllDialogsAsync(string channelReference, CancellationToken cancellationToken)
     {
         try
         {
@@ -64,13 +61,14 @@ public class TelegramChannelService : TelegramApiServiceBase
         }
     }
 
-    private async Task<Channels_ChannelParticipants?> TryGetChannelMembersAsync(Channel channel)
+    private async Task<Channels_ChannelParticipants?> TryGetChannelMembersAsync(Channel channel, CancellationToken cancellationToken)
     {
         try
         {
             return await Safe_GetAllParticipants(
                 channel,
-                delayBetweenRequestsMilliseconds: delayBetweenParticipantsRequestsMilliseconds);
+                delayBetweenRequestsMilliseconds: delayBetweenParticipantsRequestsMilliseconds,
+                cancellationToken: cancellationToken);
         }
         catch (RpcException ex)
         {
@@ -126,11 +124,19 @@ public class TelegramChannelService : TelegramApiServiceBase
                 ccp = await client.Channels_GetParticipants(channel, filter, offset, 1024, 0);
                 if (ccp.count > maxCount) maxCount = ccp.count;
                 foreach (var kvp in ccp.chats) result.chats[kvp.Key] = kvp.Value;
+                // Hack: this should be uploaded to database too each recursive step as API users snapshot.
                 foreach (var kvp in ccp.users) result.users[kvp.Key] = kvp.Value;
                 lock (participants)
                     foreach (var participant in ccp.participants)
                         if (user_ids.Add(participant.UserId))
+                        {
+                            // Hack: Ideally, at this moment we should load this batch of users into the database instead of sequentially accumulating them in RAM.
+                            // With channels exceeding 1M subscribers, current implementation could easily lead to OutOfMemoryException.
+                            // One channel entity weights about 400 bytes. So, 10M subscribers leads to ~3.7 Gb RAM bloat
+                            // However for channel quantity about 1000 users it works with no problems
                             participants.Add(participant);
+                        }
+
                 offset += ccp.participants.Length;
                 if (offset >= ccp.count || ccp.participants.Length == 0) break;
             }
@@ -148,11 +154,12 @@ public class TelegramChannelService : TelegramApiServiceBase
         }
     }
 
-    public override async Task<bool> InitializeChannelAsync()
+    public override async Task<bool> InitializeChannelAsync(CancellationToken cancellationToken)
     {
         var result = await retryService.ExecuteRetryAsync(
             action: TryInitializeChannelAsync,
             callerName: nameof(TryInitializeChannelAsync),
+            cancellationToken,
             maxRetries: 5,
             secondsInitialWait: 20,
             delayIncreaseType: DelayIncreaseType.Exponential);
@@ -160,51 +167,62 @@ public class TelegramChannelService : TelegramApiServiceBase
         return result;
     }
 
-    public override async Task<List<ChannelMember>?> GetChannelMembersAsync()
+    public override async Task<List<TLUser>?> GetChannelMembersAsync(CancellationToken cancellationToken)
     {
         if (channel is null)
         {
             Log.Error($"Не найдена ссылка на запрашиваемый канал '{channelReference}', " +
-                $"пользователи не будут получены. Возможно, стоит инициализировать сервис '{GetType()}'");
+                $"пользователи не будут получены. Возможно, стоит инициализировать сервис '{GetType().Name}'");
 
             return null;
         }
 
-        List<ChannelMember> members = [];
-
         using var timer = new ExecutionTimer(
-            "Безопасный поиск всех подписчиков",
+            "Safe search of all participants",
             t => State.LastSearchParicipantsDurationSeconds = t.TotalSeconds);
 
-        var participants = await TryGetChannelMembersAsync(channel);
+        var participants = await TryGetChannelMembersAsync(channel, cancellationToken);
 
         if (participants is null)
             return null;
 
         var result = participants.users.Values;
 
-        foreach (var user in result)
-            members.Add(ToChannelMember(user));
+        var members = participants.participants
+            .Select(m => ToTLUser(m, participants.users, channelReference))
+            .ToList();
 
-        State.LastSearchParticipantsTimeStamp = DateTime.Now;
+        State.LastSearchParticipantsTimeStamp = timeProvider.UtcNow;
         Log.Debug($"Найдено {result.Count} участников канала");
 
         return members;
     }
 
-    public override void Dispose() => client.Dispose();
+    public TLUser ToTLUser(ChannelParticipantBase participantBase, Dictionary<long, User> usersDictionary, string channelReference)
+    {
+        _ = usersDictionary.TryGetValue(participantBase.UserId, out var user);
+        if (user == null)
+        {
+            Log.Error($"User with identity {participantBase.UserId} was not found in users collection!");
+            return new()
+            {
+                Id = participantBase.UserId
+            };
+        }
 
-    public ChannelMember ToChannelMember(User tgUser) => new
-    (
-        tgUser.ID,
-        tgUser.MainUsername,
-        tgUser.IsBot,
-        tgUser.first_name,
-        tgUser.last_name,
-        tgUser.phone,
-        DateTime.Now,
-        DateTime.Now,
-        channelReference,
-        null
-    );
+        return new()
+        {
+            Id = user.ID,
+            ChannelReference = channelReference,
+            FirstName = user.first_name,
+            LastName = user.last_name,
+            IsBot = user.IsBot,
+            NickName = user.MainUsername,
+            Phone = user.phone,
+            TimeStampTicks = timeProvider.UtcNow.Ticks,
+            JoinedTicks = participantBase.IsAdmin ? null : (participantBase as ChannelParticipant)?.date.Ticks
+        };
+    }
+
+    public override void Dispose() => client.Dispose();
 }

@@ -1,49 +1,31 @@
 ﻿using MonitoringBot.Domain.Abstractions;
-using MonitoringBot.Domain.Events;
+using MonitoringBot.Domain.Projections;
 
 namespace MonitoringBot.Domain.Services;
 
-public class EntitiesChangeDetector<TEntity, TOnJoinedEventArgs, TOnLeftEventArgs>
-    : IEntitiesChangeDetector<TEntity>
-    where TEntity : ISearchableEntity
-    where TOnJoinedEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
-    where TOnLeftEventArgs : EntitiesChangedDomainEventBase<TEntity>, new()
+public class EntitiesChangeDetector<TIdentity>()
+    : IEntitiesChangeDetector<TIdentity>
 {
-    private bool HasValidItems(List<TEntity> list) =>
-        list is not null && list.Count > 0;
-
-    private List<TEntity> ExistInFirstAbsentInSecond(
-        IEnumerable<TEntity> firstCollection,
-        IEnumerable<TEntity> secondCollection) =>
+    private List<TIdentity> ExistInFirstAbsentInSecond(
+        IEnumerable<TIdentity> firstCollection,
+        IEnumerable<TIdentity> secondCollection) =>
 
         firstCollection.Except(secondCollection).ToList();
 
-    public IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> ProduceEvents(
-        IEnumerable<TEntity> usersCollectionFromApi,
-        IEnumerable<TEntity> usersCollectionFromRepository,
+    public EntitiesChanges<TIdentity> FindChanges(
+        IEnumerable<TIdentity> usersCollectionFromApi,
+        IEnumerable<TIdentity> usersCollectionFromRepository,
         string aggregateName)
     {
-            var left = ExistInFirstAbsentInSecond(usersCollectionFromRepository, usersCollectionFromApi);
-            var joined = ExistInFirstAbsentInSecond(usersCollectionFromApi, usersCollectionFromRepository);
+        var left = ExistInFirstAbsentInSecond(usersCollectionFromRepository, usersCollectionFromApi);
+        var joined = ExistInFirstAbsentInSecond(usersCollectionFromApi, usersCollectionFromRepository);
 
-            var events = new List<EntitiesChangedDomainEventBase<TEntity>>();
+        var changes = new EntitiesChanges<TIdentity>
+        { 
+            EntitiesJoined = joined, 
+            EntitiesLeft = left 
+        };
 
-            events.AddRange(joined.Select(j => new TOnJoinedEventArgs
-            {
-                Entity = j,
-                EntityIdProjection = j.IdProjection(),
-                EntityNameProjection = j.NameProjection(),
-                ChannelName = aggregateName
-            }));
-
-            events.AddRange(left.Select(l => new TOnLeftEventArgs
-            {
-                Entity = l,
-                EntityIdProjection = l.IdProjection(),
-                EntityNameProjection = l.NameProjection(),
-                ChannelName = aggregateName
-            }));
-
-            return events;
+        return changes;
     }
 }

@@ -1,5 +1,6 @@
 ﻿using MonitoringBot.Domain.Events;
 using MonitoringBot.Domain.RepositoriesAbstarctions;
+using MonitoringBot.Infrastructure;
 
 namespace MonitoringBot.Application.Commands;
 
@@ -9,9 +10,10 @@ public class AddEventsCommand<TEntity, TOnJoinedEventArgs, TOnLeftEventArgs>(
 
 {
     protected override async Task ExecuteCoreAsync(
-        IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> arguments)
+        IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> arguments,
+        ServiceContext serviceContext)
     {
-        await eventRepository.AddRangeAsync(arguments);
+        await eventRepository.AddRangeAsync(arguments, serviceContext.CancellationToken);
     }
 
 }

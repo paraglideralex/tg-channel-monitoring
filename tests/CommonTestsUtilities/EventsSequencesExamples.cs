@@ -1,7 +1,6 @@
 ﻿using MonitoringBot.Domain.Entities;
 using MonitoringBot.Domain.Events.ChannelMembers;
-using MonitoringBot.Infrastructure.Persistence;
-
+using MonitoringBot.Infrastructure.Persistence.Entities;
 using System.Text.Json;
 
 namespace MonitoringBot.CommonTestUtilities;
@@ -11,7 +10,7 @@ public class EventsSequencesExamples
     private ChannelMemberEntity CreateChannelMemberEntity(int id, string channel, string? lastAction) =>
     new()
     {
-        Id = 1,
+        Id = id,
         FirstName = $"{id}FirstName",
         LastName = $"{id}LastName",
         IsBot = false,
@@ -23,10 +22,10 @@ public class EventsSequencesExamples
         LastAction = lastAction
     };
 
-    private ChannelMember CreateChannelMember(int id, string channel, string? lastAction) =>
+    public ChannelMember CreateChannelMember(int id, string channel, string? lastAction) =>
     new()
     {
-        Id = 1,
+        Id = id,
         FirstName = $"{id}FirstName",
         LastName = $"{id}LastName",
         IsBot = false,
@@ -38,7 +37,7 @@ public class EventsSequencesExamples
         LastAction = lastAction
     };
 
-    public SubscriberJoinedEvent CreateJoinedDomainEvent(int id, string channel, string lastAction, DateTime timeStamp)
+    public SubscriberJoinedEvent CreateJoinDomainEvent(int id, string channel, string? lastAction, DateTime timeStamp)
     {
         var userEntity = CreateChannelMember(id, channel, lastAction);
         return new SubscriberJoinedEvent
@@ -52,7 +51,7 @@ public class EventsSequencesExamples
         };
     }
 
-    public SubscriberLeftEvent CreateLeftDomainEvent(int id, string channel, string lastAction, DateTime timeStamp)
+    public SubscriberLeftEvent CreateLeftDomainEvent(int id, string channel, string? lastAction, DateTime timeStamp)
     {
         var userEntity = CreateChannelMember(id, channel, lastAction);
         return new SubscriberLeftEvent
@@ -66,9 +65,9 @@ public class EventsSequencesExamples
         };
     }
 
-    public EventEntity CreateJoinEvent(int id, string channel, string lastAction, DateTime timeStamp)
+    public EventEntity CreateJoinEvent(int id, string channel, string? lastAction, DateTime timeStamp)
     {
-        var domainEvent = CreateJoinedDomainEvent(id, channel, lastAction, timeStamp);
+        var domainEvent = CreateJoinDomainEvent(id, channel, lastAction, timeStamp);
         var eventEntity = new EventEntity
         {
             EntityIdProjection = domainEvent.EntityIdProjection,
@@ -83,7 +82,7 @@ public class EventsSequencesExamples
         return eventEntity;
     }
 
-    public EventEntity CreateLeftEvent(int id, string channel, string lastAction, DateTime timeStamp)
+    public EventEntity CreateLeftEvent(int id, string channel, string? lastAction, DateTime timeStamp)
     {
         var domainEvent = CreateLeftDomainEvent(id, channel, lastAction, timeStamp);
         var eventEntity = new EventEntity

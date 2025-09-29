@@ -1,4 +1,6 @@
-﻿using MonitoringBot.Infrastructure.Extensions;
+﻿using MonitoringBot.Infrastructure;
+using MonitoringBot.Infrastructure.Extensions;
+using MonitoringBot.Infrastructure.Settings;
 
 using Serilog;
 
@@ -7,37 +9,29 @@ using Telegram.BotAPI.AvailableMethods;
 
 namespace MonitoringBot.Services.MessagesSending;
 
-public class MessagesSendingService // TODO: в будущем получать юзеров бота из репозитория, так нельзя
+public class MessagesSendingService(TelegramBotClient telegramBotClient)
 {
-    public MessagesSendingService(
-        TelegramBotClient telegramBotClient,
-        List<long> botUsers)
-    {
-        this.telegramBotClient = telegramBotClient;
-        this.botUsers = botUsers;
-    }
-
-    protected TelegramBotClient telegramBotClient;
-    protected List<long> botUsers;
+    protected TelegramBotClient telegramBotClient = telegramBotClient;
 
     private const int telegramMessageLengthLimit = 3950; // 4096, но тут с запасом
-    public async Task TrySendMessageForAllAsync(List<long> chatIdsCollection, string? message)
+    public async Task TrySendMessageForAllAsync(List<long> chatIdsCollection, string? message, ServiceContext serviceContext)
     {
         var tasks = new List<Task>();
         foreach (var id in chatIdsCollection)
-            tasks.Add(TrySendMessageAsync(id, message));
+            tasks.Add(TrySendMessageAsync(id, message, serviceContext.CancellationToken));
 
         await Task.WhenAll(tasks);
     }
 
-    public async Task TrySendMessageAsync(long id, string? message)
+    public async Task TrySendMessageAsync(long id, string? message, CancellationToken cancellationToken)
     {
         try
         {
             await telegramBotClient.SendMessageAsync(
                 id,
                 message.TakeAndFormatFirst(telegramMessageLengthLimit) ?? "Пустое сообщение",
-                parseMode: FormatStyles.HTML);
+                parseMode: FormatStyles.HTML,
+                cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {

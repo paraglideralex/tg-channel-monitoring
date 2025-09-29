@@ -2,6 +2,6 @@
 
 public sealed record GetEventsInPeriodQuery
 {
-    public DateTime From { get; init; }
-    public DateTime To { get; init; }
+    public DateTime FromNonInclusive { get; init; }
+    public DateTime ToInclusive { get; init; }
 }

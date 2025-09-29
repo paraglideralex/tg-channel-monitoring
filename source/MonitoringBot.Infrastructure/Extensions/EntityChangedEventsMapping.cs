@@ -1,13 +1,7 @@
 ﻿using MonitoringBot.Domain.Events;
 using MonitoringBot.Domain.Events.ChannelMembers;
-using MonitoringBot.Infrastructure.Persistence;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using MonitoringBot.Infrastructure.Persistence.Entities;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace MonitoringBot.Infrastructure.Extensions;
 public static class EntityChangedEventsMapping
@@ -24,7 +18,8 @@ public static class EntityChangedEventsMapping
             TimeStamp = domainEvent.TimeStamp,
             AggregateNameProjection = domainEvent.ChannelName,
             EntityIdProjection = domainEvent.EntityIdProjection,
-            EntityNameProjection = domainEvent.EntityNameProjection
+            EntityNameProjection = domainEvent.EntityNameProjection,
+            CurrentTimeSequenceNumber = domainEvent.CurrentTimeSequenceNumber
         };
     }
 

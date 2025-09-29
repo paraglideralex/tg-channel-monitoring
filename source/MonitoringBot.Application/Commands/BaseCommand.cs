@@ -1,4 +1,6 @@
-﻿using Serilog;
+﻿using MonitoringBot.Infrastructure;
+
+using Serilog;
 
 using System.Text.Json;
 
@@ -6,7 +8,7 @@ namespace MonitoringBot.Application.Commands;
 
 public abstract class BaseCommand<TArguments>
 {
-    protected abstract Task ExecuteCoreAsync(TArguments arguments);
+    protected abstract Task ExecuteCoreAsync(TArguments arguments, ServiceContext serviceContext);
 
     protected virtual bool Validate(TArguments arguments)
     {
@@ -15,7 +17,7 @@ public abstract class BaseCommand<TArguments>
         return true;
     }
 
-    public async Task<bool> ExecuteAsync(TArguments arguments)
+    public async Task<bool> ExecuteAsync(TArguments arguments, ServiceContext serviceContext)
     {
         if (arguments is TArguments typedArguments)
         {
@@ -27,7 +29,7 @@ public abstract class BaseCommand<TArguments>
             }
             try
             {
-                await ExecuteCoreAsync(typedArguments);
+                await ExecuteCoreAsync(typedArguments, serviceContext);
                 return true;
             }
             catch (Exception ex)

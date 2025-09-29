@@ -1,26 +1,22 @@
 ﻿using Serilog;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace MonitoringBot.Infrastructure.Services.FaultSafety;
+
 public class RetryService : RetryServiceBase
 {
     private readonly DelayIncreaseCalculator delayIncreaseCalculator = new();
 
     public override async Task<bool> ExecuteRetryAsync(
-        Func<Task<bool>> action,
+        Func<CancellationToken, Task<bool>> action,
         string callerName,
+        CancellationToken cancellationToken,
         int maxRetries = 5,
         int secondsInitialWait = 20,
         DelayIncreaseType delayIncreaseType = DelayIncreaseType.Linear)
     {
         for (int i = 0; i < maxRetries; i++)
         {
-            bool result = await action();
+            bool result = await action(cancellationToken);
             if (result)
             {
                 Log.Information($"Задача '{callerName}' успешно выполнена.");

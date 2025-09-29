@@ -5,19 +5,16 @@ using MonitoringBot.Infrastructure.Settings;
 namespace MonitoringBot;
 public class SettingsBuilder
 {
-    public TelegramBotSettings? TelegramBotSettings { get; private set; }
-    public TelegramApiSettings? TelegramApiSettings { get; private set; }
+    public TelegramBotSettings? TelegramBotSettingsSection { get; private set; }
+    public TelegramApiSettings? TelegramApiSettingsSection { get; private set; }
+    public DatabaseSettings? DatabaseSettingsSection { get; private set; }
+    public QuartzSettings? QuartzSettingsSection { get; private set; }
+    public SnapshotCollectingSettings? SnapshotCollectingSettingsSection { get; private set; }
 
-    public void BuildBotSettings(IConfiguration appsettings)
+    public T BuildSettings<T>(IConfiguration appsettings, string sectionName)
     {
-        TelegramBotSettings = appsettings.GetSection("TelegramBot").Get<TelegramBotSettings>()
-            ?? throw new InvalidDataException($"{nameof(TelegramBotSettings)} section doesn't exist.");
-    }
-
-    public void BuildApiSettings(IConfiguration appsettings)
-    {
-        TelegramApiSettings = appsettings.GetSection("TelegramApi").Get<TelegramApiSettings>()
-            ?? throw new InvalidDataException($"{nameof(TelegramApiSettings)} section doesn't exist.");
+        return appsettings.GetSection(sectionName).Get<T>()
+            ?? throw new InvalidDataException($"{sectionName} section doesn't exist.");
     }
 
     public void Build()
@@ -34,7 +31,10 @@ public class SettingsBuilder
 
         IConfiguration appsettings = builder.Build();
 
-        BuildBotSettings(appsettings);
-        BuildApiSettings(appsettings);
+        TelegramBotSettingsSection = BuildSettings<TelegramBotSettings>(appsettings, "TelegramBot");
+        TelegramApiSettingsSection = BuildSettings<TelegramApiSettings>(appsettings, "TelegramApi");
+        DatabaseSettingsSection = BuildSettings<DatabaseSettings>(appsettings, "Database");
+        QuartzSettingsSection = BuildSettings<QuartzSettings>(appsettings, "Quartz");
+        SnapshotCollectingSettingsSection = BuildSettings<SnapshotCollectingSettings>(appsettings, "SnapshotCollecting");
     }
 }

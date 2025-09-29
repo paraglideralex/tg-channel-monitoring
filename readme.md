@@ -21,21 +21,103 @@ Thus, the bot’s core performs two main tasks:
 - Subscription analytics and historical event logging
 
 ## High-level Architecture
+Very high-level architecture of solution is represented below.
+![Архитектура](./docs/scheme-main.drawio.svg)
 
-The **Domain** layer is conceptually represented as a mechanism for generating events based on changes in entity composition (additions or removals).
+The **Domain** layer is conceptually represented as a mechanism for generating set difference based on changes in entity composition (additions or removals).
 
-**Infrastructure** of the application depends on the Telegram API, provided by [WTelegramClient](https://wiz0u.github.io/WTelegramClient/). The interaction with the API is handled by an infrastructure background service that periodically requests the subscriber list. 
+**Infrastructure** of the application depends on the Telegram API, provided by [WTelegramClient](https://wiz0u.github.io/WTelegramClient/). The interaction with the API is handled by an infrastructure fetching users background service that periodically requests the subscriber list. 
 
 The database consists of:
 - event store,
-- channel subscribers store,
-- subscribers read model. 
+- snapshots store
+- channel subscribers read model,
+- users from API read model
+- bot users. 
+
+Detailed database model is represented [below](#current-database-model)
 
 Data access is implemented via repositories.
 
-The **Application** layer is responsible for processing domain events, executing pure commands and queries, as well as part of the bot’s core monitoring logic.
+The **Application** layer is responsible for processing domain events, executing pure commands and queries, as well as part of the bot’s core monitoring logic. It is also responsible for snapshot collecting background job.
 
-The **Presentation** layer contains the bot’s core logic and the mechanism for generating user-facing messages. Bot API is provided by [Telegram.BotAPI for .NET](https://github.com/Eptagone/Telegram.BotAPI).
+The **Presentation** layer contains the bot’s core logic and the mechanism for generating user-facing messages and handling bot users actions. Bot API is provided by [Telegram.BotAPI for .NET](https://github.com/Eptagone/Telegram.BotAPI).
+
+### Current database model
+
+
+```mermaid
+
+classDiagram
+
+	class UserReadModel{
+		long Id
+		string? NickName
+		bool IsBot
+		string? FirstName
+		string? LastName
+		string? Phone
+		string? ChannelReference
+		string? LastAction
+		DateTime? TimeStamp
+		DateTime? Created
+	}
+	
+	class EventStorage{
+		Guid Id
+		int CurrentTimeSequenceNumber
+		string AggregateNameProjection
+		string EntityType
+		string EventType
+		string Data
+		DateTime TimeStamp
+		string EntityIdProjection
+		string EntityNameProjection
+	}
+```
+
+```mermaid
+classDiagram
+	class AggregateSnapshot{
+		Guid Id
+		string AggregateName
+		long? TotalEntities
+		Guid? LastProcessedEventId
+		DateTime? LastEventTimeStamp
+		int? LastEventSequenceNumberForTimeStamp
+		DateTime? TimeStamp
+	}
+	
+	class APIUserReadModel{
+		long Id
+		string? NickName
+		bool IsBot
+		string? FirstName
+		string? LastName
+		string? Phone
+		string? ChannelReference
+		DateTime? Joined
+		DateTime? TimeStamp
+		bool IsCurrent
+	}
+
+```
+
+```mermaid
+classDiagram
+	class BotUser{
+		required long Id
+		string? FirstName
+		string? LastName
+		string? UserName
+		bool? IsForum
+		string? Type
+		string? Title
+		bool IsCurrent
+		DateTime TimeStamp
+	}
+```
+
 
 ## Subscriber Change Processing Flow
 
@@ -46,123 +128,151 @@ The bot's core executes the following sequence when handling channel membership 
 sequenceDiagram
 actor User
 
-  
+participant Presentation as Presentation
 
-box Presentation
+participant Application as Application
 
-participant MessagesSendingService as Messages sending<br>service
-	participant MonitoringBotRunner as MonitoringBot<br>Runner
-end
+participant Infrastructure as Infrastructure<br>and DB
 
-  
+participant Domain as Domain
 
-    box Application
-
-participant SubscribersMonitoringService as Subscribers<br>MonitoringService
-
-    participant EventsMonitoringProcessor as Events monitoring<br>processor
-
-    participant SubscribersChangeProcessor as Subscribers change<br>processor
-
-    end
-
-    box Infrastructure and DB
-
-    participant TgApi as Telegram<br>API
-
-    participant UsersReadModel as Users<br>read model
-
-    participant EventsStorage as Events<br>Storage
-
-    end
-
-  
-
-    box Domain
-
-    participant ChangeDetector as Entities Change<br>Detector
-
-    end
 loop Background monitoring execution by period
-  activate MonitoringBotRunner
-MonitoringBotRunner ->> SubscribersMonitoringService: ProcessMonitoring<br>ByPeriodAsync()
-deactivate MonitoringBotRunner
-    activate SubscribersMonitoringService
-
-  
+	activate Presentation
+		Presentation ->> Application: ProcessMonitoring<br>ByPeriodAsync()
+	deactivate Presentation
 	
-        SubscribersMonitoringService->>TgApi: FetchUsersBackgroundService.GetSnapshot()
+    activate Application
+        Application->>Infrastructure: get current users identities from API snapshot read model
+        activate Infrastructure
+	        Infrastructure -->> Application: List<long> users snapshot from API
+        deactivate Infrastructure
 
-        activate TgApi
+        Application->>Infrastructure: Get current subscribers identities from subscribers read model
 
-        TgApi -->> SubscribersMonitoringService: List<ChannelMember> users snapshot from API
+        activate Infrastructure
+        Infrastructure-->>Application: List<long> current users identities
+        deactivate Infrastructure
 
-        deactivate TgApi
+        Application ->> Domain: Create difference between two sets of identities
 
-        SubscribersMonitoringService->>UsersReadModel: GetAllCurrentSubscribersQuery.ExecuteAsync()
-
-        activate UsersReadModel
-
-        UsersReadModel-->>SubscribersMonitoringService: List<ChannelMember> current users
-
-        deactivate UsersReadModel
-
-        SubscribersMonitoringService ->> ChangeDetector: ProduceEvents(apiUsers, databaseUsers, channelReference) generates subscribe/unsubscribe events
-
-        activate ChangeDetector
-
-        ChangeDetector -->> SubscribersMonitoringService: IReadOnlyCollection<EntitiesChangedDomainEventBase<TEntity>> events
-
-        deactivate ChangeDetector
-
-        SubscribersMonitoringService ->> EventsStorage: AddEventsCommand.ExecuteAsync(events)
-
-    
-
-        activate EventsStorage
-
-        deactivate EventsStorage
-        
-       SubscribersMonitoringService ->> EventsMonitoringProcessor: ExecuteMonitoringAsync()
+        activate Domain
+        Domain -->> Application: Joined and left participants identities
+        deactivate Domain
        
-       deactivate SubscribersMonitoringService
-activate EventsMonitoringProcessor
-        EventsMonitoringProcessor ->> EventsStorage: GetEventsInPeriodQueryExecution.GetEventsByPeriodAsync(events)
+		Application ->> Infrastructure: Get joined users if exist by identity from API read model
+		activate Infrastructure
+        Infrastructure-->>Application: List<Channel member> joined users
+        deactivate Infrastructure
 
-        activate EventsStorage
+		Application ->> Infrastructure: Get left users if exist by identity from participants read model
+		activate Infrastructure
+        Infrastructure-->>Application: List<Channel member> left users
+        deactivate Infrastructure
 
-  
+		Application ->> Application: Generate events
 
-        
+        Application ->> Infrastructure: Add events to event store
+        activate Infrastructure
+        deactivate Infrastructure
+              
+        Application ->> Infrastructure: Get pending events
 
-        EventsStorage -->> EventsMonitoringProcessor: events
+        activate Infrastructure 
+        Infrastructure -->> Application: pending events
+        deactivate Infrastructure
 
-        deactivate EventsStorage
+        Application ->> Application: aggregate events by type. Trigger events
 
-        EventsMonitoringProcessor ->> SubscribersChangeProcessor: aggregated<br/>by type events
+        Application ->> Infrastructure: Invoke: update subscribers read model according to events
+        activate Infrastructure
+        deactivate Infrastructure       
 
-        activate SubscribersChangeProcessor
-
-        SubscribersChangeProcessor ->> UsersReadModel: AddOrUpdateSubscribersCommand.ExecuteAsync<br/>(EntitiesCollectionChangedEventArgs<ChannelMember> aggregatedEvent)
-
-        activate UsersReadModel
-
-        deactivate UsersReadModel
-
-        deactivate SubscribersChangeProcessor
-        
-
-        EventsMonitoringProcessor ->> MessagesSendingService: aggregated<br/>by type events
-
-        deactivate EventsMonitoringProcessor
-
-        activate MessagesSendingService
-
-        MessagesSendingService ->> User: Telegram<br/>notification
-
-        deactivate MessagesSendingService
+        Application ->> Presentation: Invoke: generate Telegram<br>message by events
+		deactivate Application
+		
+        activate Presentation
+        Presentation ->> User: Telegram<br/>notification
+        deactivate Presentation
         
 end
+```
+
+## Fetch users from API background service flow
+That's how users fetch is processed
+
+```mermaid
+
+sequenceDiagram
+
+participant Presentation
+participant FetchUsersService as Fetch Users<br> Background Service
+participant APIReadModel as API Users<br>Read Model
+participant TelegramAPI
+
+
+Presentation ->> FetchUsersService: Start()
+
+activate FetchUsersService
+FetchUsersService ->> FetchUsersService: Start background monitoring
+
+loop Fetch users from API periodic execution
+	FetchUsersService ->> TelegramAPI: Get all participants from API with safe delay between requests
+
+	activate TelegramAPI
+
+	TelegramAPI -->> FetchUsersService: List of current participants
+
+	deactivate TelegramAPI
+
+	FetchUsersService ->> APIReadModel: Add or update participants at read model
+	activate APIReadModel
+	deactivate APIReadModel
+end
+
+Presentation ->> FetchUsersService: StopAsync()
+FetchUsersService ->> FetchUsersService: Stop background monitoring
+deactivate FetchUsersService
+```
+
+## Background Events Snapshot Creation Flow
+
+
+```mermaid
+
+sequenceDiagram
+
+box Application
+	participant JobManager
+	participant SnapshotCollectingJob
+end
+
+box Infrastructure
+	participant EventsStore
+	participant SnapshotsStore
+end
+
+
+JobManager ->> SnapshotCollectingJob: Schedule Snapshot<br>Collection Job
+activate SnapshotCollectingJob
+
+loop Fetch users from API periodic execution
+	SnapshotCollectingJob ->> EventsStore: Get all events by current period
+	EventsStore -->> SnapshotCollectingJob: List of current events
+	
+	SnapshotCollectingJob ->> SnapshotsStore: Get last snapshot
+	SnapshotsStore -->> SnapshotCollectingJob: last snapshot
+
+	SnapshotCollectingJob ->> SnapshotCollectingJob: create new snapshot
+
+	SnapshotCollectingJob ->> SnapshotsStore: add new snapshot
+	activate SnapshotsStore
+	deactivate SnapshotsStore
+
+
+JobManager ->> SnapshotCollectingJob: Pause Snapshot<br>Collection Job
+end
+deactivate SnapshotCollectingJob
+
 ```
 
 ## Setup and Deployment

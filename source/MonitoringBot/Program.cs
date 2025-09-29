@@ -1,100 +1,45 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using CrystalQuartz.Application;
+using CrystalQuartz.AspNetCore;
+
+using Microsoft.EntityFrameworkCore;
 
 using MonitoringBot;
-using MonitoringBot.Application.Commands;
-using MonitoringBot.Application.Queries;
-using MonitoringBot.Application.Queries.Events;
-using MonitoringBot.Application.Queries.Projections;
-using MonitoringBot.Application.Services;
-using MonitoringBot.Domain.Entities;
-using MonitoringBot.Domain.Events.ChannelMembers;
-using MonitoringBot.Domain.Services;
-using MonitoringBot.Infrastructure.Persistence;
-using MonitoringBot.Infrastructure.RepositoriesImplementations;
-using MonitoringBot.Infrastructure.Services.FaultSafety;
-using MonitoringBot.Infrastructure.Services.TelegramApi.Data;
-using MonitoringBot.Infrastructure.Services.TelegramApi.FetchUsers;
-using MonitoringBot.Presentation;
-using MonitoringBot.Services.MessagesSending;
-using MonitoringBot.Application.Abstractions;
+using MonitoringBot.Infrastructure.Persistence.DatabaseContexts;
 
-using Telegram.BotAPI;
-
-LoggingSetup.SetupLogging();
+using Quartz;
 
 var settingsBuilder = new SettingsBuilder();
 settingsBuilder.Build();
 
-var dbContextOptions = new DbContextOptionsBuilder<MonitoringBotDbContextInMemory>()
-    .UseInMemoryDatabase("InMemoryDb")
-    .Options;
+var builder = WebApplication.CreateBuilder(args);
 
-var dbContext = new MonitoringBotDbContextInMemory(dbContextOptions);
+LoggingSetup.SetupLogging();
 
-var userRepository = new UsersRepositoryInMemoryImplementation(dbContext);
+builder.Services.AddMonitoringBotServices(builder.Configuration);
 
-var config = new TelegramConfig(
-    settingsBuilder.TelegramApiSettings!.ApiId,
-    settingsBuilder.TelegramApiSettings.ApiHash,
-    settingsBuilder.TelegramApiSettings.PhoneNumber);
+var app = builder.Build();
 
-var retryService = new RetryService();
+app.UseCrystalQuartz(
+    () => app.Services.GetRequiredService<IScheduler>(),
+    new CrystalQuartzOptions
+    {
+        Path = "/quartz"
+    });
 
-var telegramService = new TelegramChannelService(config, 
-    settingsBuilder.TelegramApiSettings.ChannelReferenceLink, retryService);
+app.MapGet("/", () => "Go to /quartz to see background jobs details.");
 
-var backgroundUserFetchService = new FetchUsersBackgroundService(
-    telegramService,
-    TimeSpan.FromSeconds(settingsBuilder.TelegramBotSettings!.CheckPeriodSeconds));
+await ApplyMigrationsIfNeededAsync<MonitoringBotDbContextBase>(app);
 
-var client = new TelegramBotClient(settingsBuilder.TelegramBotSettings!.BotToken);
+await app.RunAsync(settingsBuilder.QuartzSettingsSection?.DebuggerEndpoint);
 
-var messageBuilder = new MessageBuilder(userRepository);
-var monitoringEngine = new EntitiesChangeDetector<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>();
-var getAllQuery = new GetAllCurrentSubscribersQuery(userRepository);
-
-var addUserCommand = new AddOrUpdateSubscribersCommand(userRepository);
-var deleteUserCommand = new DeleteSubscribersCommand(userRepository);
-
-var monitoringProcessor = new SubscribersChangeProcessor(addUserCommand, deleteUserCommand);
-var monitoringPresentation = new MonitoringPresentation(messageBuilder);
-
-var subscribersChangeMessagingService = new SubscribersChangeMessageService(
-    client,
-    settingsBuilder.TelegramBotSettings.ChatIdsCollection,
-    monitoringPresentation);
-
-var eventRepository = new EventsRepositoryImplementation<ChannelMember>(dbContext);
-
-var addEventsCommand = new AddEventsCommand<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(eventRepository);
-
-var getEventsInPeriodQuery = new GetEventsInPeriodQueryExecution<ChannelMember>(eventRepository);
-
-var eventsProcessor = new EventsMonitoringProcessor<ChannelMember>(getEventsInPeriodQuery);
-
-var monitoringService = new SubscribersMonitoringService(
-    backgroundUserFetchService,
-    getAllQuery,
-    monitoringEngine,
-    addEventsCommand,
-    eventsProcessor,
-    settingsBuilder.TelegramApiSettings.ChannelReferenceLink);
-
-var monitoringBotRunner = new MonitoringBotRunner<ChannelMember, SubscriberJoinedEvent, SubscriberLeftEvent>(
-    getAllQuery,
-    subscribersChangeMessagingService,
-    client,
-    backgroundUserFetchService,
-    messageBuilder,
-    monitoringProcessor,
-    monitoringPresentation,
-    settingsBuilder.TelegramBotSettings.ChatIdsCollection,
-    settingsBuilder.TelegramBotSettings.CheckPeriodSeconds,
-    settingsBuilder.TelegramApiSettings.ChannelReferenceLink,
-    eventsProcessor,
-    monitoringService);
-
-await monitoringBotRunner.InitializeAsync();
-await monitoringBotRunner.MainLoopAsync();
-
-
+static async Task ApplyMigrationsIfNeededAsync<T>(WebApplication app) where T : DbContext
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<T>();
+    await using (db)
+    {
+        var pendingMigrations = (await db!.Database.GetPendingMigrationsAsync().ConfigureAwait(false)).ToList();
+        if (pendingMigrations.Count > 0)
+            await db.Database.MigrateAsync().ConfigureAwait(false);
+    }
+}

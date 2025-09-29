@@ -1,0 +1,17 @@
+﻿namespace MonitoringBot.Infrastructure.Persistence.Entities;
+
+public class ChannelMemberEntity
+{
+    public long Id { get; set; }
+    public string? NickName { get; set; }
+    public bool IsBot { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Phone { get; set; }
+    public string? ChannelReference { get; set; }
+    public string? LastAction { get; set; }
+    public DateTime? TimeStamp { get; set; }
+    public DateTime? Created { get; set; }
+
+    public override string ToString() => $"{Id}_{NickName}_{FirstName}_{LastName}_{LastAction}_{TimeStamp}_{Created}";
+}
