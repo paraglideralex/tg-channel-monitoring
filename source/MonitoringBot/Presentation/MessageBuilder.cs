@@ -242,7 +242,7 @@ public class MessageBuilder(
             return "Строка запроса пустая или её не существует...";
 
         var endpointParts = inputEndpoint!.Split('/');
-        if (endpointParts.Length < 3)
+        if (endpointParts.Length < 3 || endpointParts[2].IsNullOrEmpty())
         {
             return "Не удалось распознать в запросе никнейм юзера. Напомним, что запрос строится по принципу:" +
                 "/isDick/userNickName без @ перед его ником.";
@@ -251,13 +251,13 @@ public class MessageBuilder(
 
         var user = await getUserByNickNameQueryExecution.ExecuteAsync(new GetUserByNameQuery { UserNickName = name }, serviceContext);
         if (user is null)
-            return $"Такой юзер с ником {name} на нас ещё не был подписан, либо его нет в базе данных.";
+            return $"Юзер с ником @{name} на нас ещё не был подписан, либо его нет в базе данных.";
 
         if (user.LastAction is nameof(SubscriberJoinedEvent))
             return $"Этот юзер порядочный👍, и он подписан на нас с {user.TimeStamp?.ToString("dd.MM.yyyy HH:mm")}.";
 
         if (user.LastAction is nameof(SubscriberLeftEvent))
-            return $"Этот юзер попрощался со своим будущим  в дизайне 🚮 и ушёл {user.TimeStamp?.ToString("dd.MM.yyyy HH:mm")} 🚽.";
+            return $"Этот юзер попрощался со своим будущим в дизайне 🚮 и ушёл {user.TimeStamp?.ToString("dd.MM.yyyy HH:mm")} 🚽.";
 
         return "На данный момент у нас нет данных о действиях этого юзера...";
     }
