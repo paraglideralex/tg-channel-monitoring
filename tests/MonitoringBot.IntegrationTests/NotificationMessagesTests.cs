@@ -33,6 +33,7 @@ public class NotificationMessagesTests : IntegrationTestsBase
     private AddBotUserCommand addBotUserCommand;
     private IMemoryCache memoryCache;
     private GetActiveBotUsersQuery getActiveBotUsersQuery;
+    private GetUserByNickNameQueryExecution getUserByNickNameQueryExecution;
 
     [SetUp]
     public override async Task SetUpAsync()
@@ -49,11 +50,12 @@ public class NotificationMessagesTests : IntegrationTestsBase
         addBotUserCommand = new(botUserRepository, timeProviderMock.Object);
         getActiveBotUsersQuery = new(botUserRepository);
         botUsersService = new(addBotUserCommand, memoryCache, new CacheKeysFactory(), getActiveBotUsersQuery);
+        getUserByNickNameQueryExecution = new(usersRepository);
 
         entitiesChangeMessageProducer = new SubscribersChangeMessageProducer(
             new MonitoringPresentation(
                 new MessageBuilder(usersRepository, getTimeSpanBetweenLastEventsQueryExecution, getUsersCountForPeriodQueryExecution, 
-                closestSnapshotByTimeQueryExecution, timeProviderMock.Object, botUsersService)
+                closestSnapshotByTimeQueryExecution, timeProviderMock.Object, botUsersService, getUserByNickNameQueryExecution)
                 ));
 
         messageConsumer = new();
