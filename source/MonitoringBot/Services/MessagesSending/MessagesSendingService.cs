@@ -27,6 +27,7 @@ public class MessagesSendingService(TelegramBotClient telegramBotClient)
     {
         try
         {
+            // TODO: получать сообщение, а не просто await.
             await telegramBotClient.SendMessageAsync(
                 id,
                 message.TakeAndFormatFirst(telegramMessageLengthLimit) ?? "Пустое сообщение",
@@ -35,6 +36,7 @@ public class MessagesSendingService(TelegramBotClient telegramBotClient)
         }
         catch (Exception ex)
         {
+            //TODO: добавить логику isActive = false и исключения из кэша если исключение типизировано блокировкой юзера
             Console.WriteLine(ex.Message);
             Log.Error($"Сообщение в ответ на запрос не было отправлено id: {id}, message:{message.TakeAndFormatFirst(300)}");
         }
