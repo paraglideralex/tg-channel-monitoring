@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>library</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Quartz" Version="3.14.0" />
     <PackageReference Include="Quartz.Jobs" Version="3.14.0" />
-    <PackageReference Include="WTelegramClient" Version="4.3.3" />
+    <PackageReference Include="WTelegramClient" Version="4.3.10" />
   </ItemGroup>
 
   <ItemGroup>

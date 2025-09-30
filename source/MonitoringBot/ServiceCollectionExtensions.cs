@@ -141,7 +141,7 @@ public static class ServiceCollectionExtensions
 
         // Queries/Commands
         services.AddTransient<AddOrUpdateSubscribersCommand>();
-        services.AddTransient<GetAllCurrentSubscribersQuery>();
+        //services.AddTransient<GetAllCurrentSubscribersQuery>();
         services.AddTransient<GetEventsInPeriodQueryExecution<ChannelMember>>();
         services.AddTransient<GetTimeSpanBetweenLastEventsQueryExecution<ChannelMember>>();
         services.AddTransient<GetUsersCountForPeriodQueryExecution>();
