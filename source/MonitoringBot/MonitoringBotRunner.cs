@@ -95,7 +95,7 @@ public class MonitoringBotRunner<TEntity, TOnJoinedEvent, TOnLeftEvent>(
                     "/history_snapshot" => await messageBuilder.HistorySnapshotAsync(
                         telegramApiSettings.ChannelReferenceLink,
                         currentUpdateContext),
-                    { } s when s.StartsWith("/isDick", StringComparison.OrdinalIgnoreCase) => await messageBuilder.IsDickAsync(s, currentUpdateContext),
+                    { } s when s.StartsWith("/is_dick", StringComparison.OrdinalIgnoreCase) => await messageBuilder.IsDickAsync(s, currentUpdateContext),
                     "//stop_service" => await StopAsync(chatId),
                     "//restart_service" => await RestartAsync(chatId),
                     _ => "это не известная мне команда..."
